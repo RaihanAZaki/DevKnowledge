@@ -1,0 +1,1 @@
+export function ActivityTimeline({activities=[]}:{activities:any[]}){return <section className="rounded-2xl border bg-[var(--surface)] p-5"><h2 className="font-semibold">Recent Activity</h2><div className="mt-4 space-y-3">{activities.map(a=><div key={a.id} className="border-l-2 pl-3 text-sm">{a.description}</div>)}</div></section>}

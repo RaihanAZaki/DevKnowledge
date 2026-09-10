@@ -1,0 +1,24 @@
+"use client";
+
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Bot, Braces, BookOpenText, LoaderCircle, Send, Sparkles } from "lucide-react";
+import { MarkdownContent } from "@/components/markdown-content";
+import { Button, Spinner, Textarea } from "@/components/ui";
+import { formatDate } from "@/lib/format";
+
+type Chat = { id:string; question:string; answer:string; createdAt:string };
+
+const prompts = [
+  { icon: Braces, text: "Explain this code and its impact" },
+  { icon: BookOpenText, text: "Create a technical documentation outline" },
+  { icon: Sparkles, text: "Suggest a cleaner backend architecture" },
+];
+
+export default function AiPage(){
+ const [messages,setMessages]=useState<Chat[]|null>(null);const [loading,setLoading]=useState(false);const [input,setInput]=useState("");const [error,setError]=useState("");const bottom=useRef<HTMLDivElement|null>(null);
+ useEffect(()=>{fetch("/api/ai/chat").then(r=>r.json()).then(d=>setMessages(d.messages??[]))},[]);
+ useEffect(()=>bottom.current?.scrollIntoView({behavior:"smooth"}),[messages,loading]);
+ async function send(e?:FormEvent){e?.preventDefault();const message=input.trim();if(!message||loading)return;setInput("");setError("");setLoading(true);const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message})});const data=await response.json();if(!response.ok){setError(data.error??"Unable to reach AI provider.");setLoading(false);return}setMessages(current=>[...(current??[]),data.message]);setLoading(false)}
+ if(!messages)return <Spinner label="Opening AI workspace"/>;
+ return <div className="mx-auto flex min-h-[calc(100vh-9rem)] max-w-5xl flex-col"><div className="mb-7"><div className="mb-2 text-xs font-semibold uppercase tracking-[.18em] text-[var(--primary)]">Cloud AI</div><h1 className="text-3xl font-semibold tracking-[-0.04em]">DevKnowledge AI</h1><p className="mt-2 text-sm text-[var(--text-soft)]">Ask about code, debugging, architecture, or how to turn implementation details into useful documentation.</p></div><div className="flex-1 space-y-6">{messages.length===0?<div className="grid place-items-center rounded-3xl border border-[var(--border)] bg-[var(--surface)] px-6 py-16 text-center"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]"><Bot className="h-5 w-5"/></span><h2 className="mt-5 text-xl font-semibold tracking-[-0.03em]">How can I help you today?</h2><p className="mt-2 max-w-lg text-sm leading-6 text-[var(--text-soft)]">Your prompts are sent from the backend to Gemini, so the provider API key stays server-side.</p><div className="mt-7 grid w-full max-w-2xl gap-3 sm:grid-cols-3">{prompts.map(({icon:Icon,text})=><button key={text} onClick={()=>setInput(text)} className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4 text-left text-xs leading-5 text-[var(--text-soft)] transition hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"><Icon className="mb-3 h-4 w-4 text-[var(--primary)]"/>{text}</button>)}</div></div>:messages.map(m=><div key={m.id} className="space-y-3"><div className="ml-auto max-w-[82%] rounded-2xl rounded-br-md bg-[var(--text)] px-4 py-3 text-sm leading-6 text-[var(--surface)]">{m.question}</div><div className="max-w-[92%] rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface)] px-5 py-4"><div className="mb-3 flex items-center gap-2 text-xs text-[var(--text-muted)]"><Bot className="h-3.5 w-3.5 text-[var(--primary)]"/> DevKnowledge AI · {formatDate(m.createdAt)}</div><MarkdownContent content={m.answer}/></div></div>)}{loading?<div className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-soft)]"><LoaderCircle className="h-4 w-4 animate-spin text-[var(--primary)]"/> Thinking through the context...</div>:null}<div ref={bottom}/></div>{error?<div className="my-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">{error}</div>:null}<form onSubmit={send} className="sticky bottom-4 mt-7 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] p-3 shadow-[var(--shadow)] backdrop-blur-xl"><div className="flex items-end gap-2"><Textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} className="min-h-[54px] max-h-40 border-0 bg-transparent py-3 shadow-none focus:shadow-none" placeholder="Ask anything about development..."/><Button type="submit" disabled={loading||!input.trim()} className="h-11 w-11 shrink-0 px-0"><Send className="h-4 w-4"/></Button></div><div className="px-2 pt-1 text-[10px] text-[var(--text-muted)]">Enter to send · Shift + Enter for new line</div></form></div>;
+}

@@ -1,0 +1,17 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, MessageSquareText, Plus, Search } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Badge, EmptyState, Input, Spinner } from "@/components/ui";
+import { CATEGORY_LABEL, CATEGORY_OPTIONS } from "@/lib/constants";
+import { formatDate } from "@/lib/format";
+
+type Thread = { id:string; title:string; content:string; category:keyof typeof CATEGORY_LABEL; tags:string[]; updatedAt:string; author:{name:string}; _count:{comments:number}; comments:Array<{id:string}> };
+export default function ForumPage(){
+ const [items,setItems]=useState<Thread[]|null>(null); const [search,setSearch]=useState(""); const [category,setCategory]=useState("");
+ useEffect(()=>{fetch("/api/forum").then(r=>r.json()).then(d=>setItems(d.threads??[]))},[]);
+ const filtered=useMemo(()=>(items??[]).filter(item=>{const q=search.toLowerCase();return (!q||`${item.title} ${item.content} ${item.tags.join(" ")}`.toLowerCase().includes(q))&&(!category||item.category===category)}),[items,search,category]);
+ return <div><PageHeader eyebrow="Community" title="Forum Discussions" description="Ask implementation questions, compare approaches, and keep accepted solutions discoverable." action={<Link href="/forum/new" className="inline-flex items-center gap-2 rounded-xl bg-[var(--text)] px-4 py-2.5 text-sm font-medium text-[var(--surface)]"><Plus className="h-4 w-4"/> New discussion</Link>}/><div className="mb-5 flex flex-col gap-3 md:flex-row"><div className="relative flex-1"><Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"/><Input className="pl-10" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search discussions..."/></div><select className="field h-11 px-3.5 text-sm md:w-48" value={category} onChange={e=>setCategory(e.target.value)}><option value="">All categories</option>{CATEGORY_OPTIONS.map(item=><option key={item} value={item}>{CATEGORY_LABEL[item]}</option>)}</select></div>{!items?<Spinner/>:filtered.length===0?<EmptyState title="No discussions found" description="Start a technical discussion or adjust your filters." action={<Link href="/forum/new" className="text-sm font-medium text-[var(--primary)]">Start discussion</Link>}/>:<div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] divide-y divide-[var(--border)]">{filtered.map(item=><Link href={`/forum/${item.id}`} key={item.id} className="group flex gap-4 px-5 py-5 transition hover:bg-[var(--surface-soft)]"><span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]"><MessageSquareText className="h-4 w-4"/></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge>{CATEGORY_LABEL[item.category]}</Badge>{item.comments.length?<Badge tone="success"><CheckCircle2 className="mr-1 h-3 w-3"/> Solved</Badge>:null}</div><h2 className="mt-2 font-medium tracking-[-0.01em]">{item.title}</h2><p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--text-soft)]">{item.content}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]"><span>{item.author.name}</span><span>{item._count.comments} replies</span><span>{formatDate(item.updatedAt)}</span></div></div></Link>)}</div>}</div>;
+}
