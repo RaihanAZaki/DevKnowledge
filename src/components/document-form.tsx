@@ -23,7 +23,7 @@ import {
   CATEGORY_OPTIONS,
 } from "@/lib/constants";
 
-type DocumentFormValues = {
+export type DocumentFormValues = {
   title: string;
   excerpt: string;
   content: string;
