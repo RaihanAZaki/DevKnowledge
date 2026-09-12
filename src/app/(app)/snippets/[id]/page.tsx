@@ -1,29 +1,19 @@
-"use client";
+import { redirect, notFound } from "next/navigation";
+import { getServerSession } from "@/lib/auth";
+import { getSnippetById } from "@/server/snippets/snippet.service";
+import { serializeForClient } from "@/server/shared/serialize";
+import { AppError } from "@/server/shared/app-error";
+import SnippetDetailClient from "./snippet-detail-client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
-import { Badge, GhostButton, Spinner } from "@/components/ui";
-import { CATEGORY_LABEL } from "@/lib/constants";
-import { formatDate } from "@/lib/format";
-
-type Snippet = { id: string; ticketNo: string; title: string; description?: string; reason: string; impact?: string; language: string; framework?: string; category: keyof typeof CATEGORY_LABEL; beforeCode: string; afterCode: string; author: { name: string }; updatedAt: string };
-
-export default function SnippetDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const [data, setData] = useState<{ snippet: Snippet; canManage: boolean } | null>(null);
-  useEffect(() => { fetch(`/api/snippets/${id}`).then((r) => r.json()).then(setData); }, [id]);
-  async function remove() { if (!confirm("Delete this snippet permanently?")) return; const r = await fetch(`/api/snippets/${id}`, { method: "DELETE" }); if (r.ok) router.push("/snippets"); }
-  if (!data?.snippet) return <Spinner />;
-  const s = data.snippet;
-  return <div>
-    <Link href="/snippets" className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--text-soft)] hover:text-[var(--text)]"><ArrowLeft className="h-4 w-4" /> Code Snippets</Link>
-    <div className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><span className="text-xs font-semibold uppercase tracking-[.12em] text-[var(--primary)]">{s.ticketNo}</span><Badge>{CATEGORY_LABEL[s.category]}</Badge></div><h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{s.title}</h1>{s.description ? <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">{s.description}</p> : null}<div className="mt-4 text-xs text-[var(--text-muted)]">{s.language}{s.framework ? ` · ${s.framework}` : ""} · {s.author.name} · Updated {formatDate(s.updatedAt)}</div></div>{data.canManage ? <div className="flex gap-2"><Link href={`/snippets/${id}/edit`} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm font-medium text-[var(--text-soft)]"><Pencil className="h-4 w-4" /> Edit</Link><GhostButton onClick={remove} className="text-[var(--danger)]"><Trash2 className="h-4 w-4" /></GhostButton></div> : null}</div>
-    <div className="grid gap-5 xl:grid-cols-2"><CodeBlock label="Before" tone="danger" code={s.beforeCode} /><CodeBlock label="After" tone="success" code={s.afterCode} /></div>
-    <div className="mt-5 grid gap-5 lg:grid-cols-2"><section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"><h2 className="text-sm font-semibold">Why this changed</h2><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-soft)]">{s.reason}</p></section><section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"><h2 className="text-sm font-semibold">Impact</h2><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-soft)]">{s.impact || "No impact note was added."}</p></section></div>
-  </div>;
+export default async function SnippetDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await getServerSession();
+  if (!user) redirect("/login");
+  const { id } = await params;
+  try {
+    const data = await getSnippetById(id, user);
+    return <SnippetDetailClient id={id} initialData={serializeForClient(data)} />;
+  } catch (error) {
+    if (error instanceof AppError && error.status === 404) notFound();
+    throw error;
+  }
 }
-
-function CodeBlock({ label, tone, code }: { label: string; tone: "danger" | "success"; code: string }) { return <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]"><div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3"><span className={`h-2 w-2 rounded-full ${tone === "danger" ? "bg-red-400" : "bg-emerald-400"}`} /><span className="text-xs font-semibold uppercase tracking-[.14em] text-[var(--text-muted)]">{label}</span></div><pre className="min-h-[320px] overflow-auto bg-[#17191e] p-5 text-[13px] leading-6 text-[#e9edf5]"><code>{code || "// No code"}</code></pre></section>; }

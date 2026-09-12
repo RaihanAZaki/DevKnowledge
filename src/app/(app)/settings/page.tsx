@@ -1,15 +1,12 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getServerSession } from "@/lib/auth";
+import { getOwnProfile } from "@/server/profile/profile.service";
+import { serializeForClient } from "@/server/shared/serialize";
+import SettingsClient from "./settings-client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { Check, LoaderCircle, ShieldCheck } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { Badge, Button, Input, Label, Spinner, Textarea } from "@/components/ui";
-
-type User={id:string;name:string;email:string;role:string;bio?:string|null};
-export default function SettingsPage(){
- const [user,setUser]=useState<User|null>(null);const [loading,setLoading]=useState(false);const [saved,setSaved]=useState(false);const [error,setError]=useState("");
- useEffect(()=>{fetch("/api/auth/me").then(r=>r.json()).then(d=>setUser(d.user))},[]);
- async function save(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!user)return;setLoading(true);setError("");setSaved(false);const r=await fetch("/api/users/me",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:user.name,bio:user.bio})});const d=await r.json();setLoading(false);if(!r.ok){setError(d.error??"Unable to save profile.");return}setUser(d.user);setSaved(true);setTimeout(()=>setSaved(false),2200)}
- if(!user)return <Spinner/>;
- return <div className="max-w-4xl"><PageHeader eyebrow="Preferences" title="Settings" description="Manage your profile and workspace-facing identity."/><div className="grid gap-6 lg:grid-cols-[1fr_.45fr]"><form onSubmit={save} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"><h2 className="text-sm font-semibold">Profile</h2><p className="mt-1 text-xs text-[var(--text-muted)]">Shown on snippets, documents, and discussions.</p><div className="mt-6 space-y-5"><div><Label>Name</Label><Input value={user.name} onChange={e=>setUser({...user,name:e.target.value})}/></div><div><Label>Email</Label><Input value={user.email} disabled className="cursor-not-allowed opacity-65"/><p className="mt-2 text-xs text-[var(--text-muted)]">Email changes are disabled in this starter.</p></div><div><Label>Bio</Label><Textarea value={user.bio??""} onChange={e=>setUser({...user,bio:e.target.value})} placeholder="Backend developer focused on..."/></div>{error?<div className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-300">{error}</div>:null}<Button disabled={loading}>{loading?<LoaderCircle className="h-4 w-4 animate-spin"/>:saved?<Check className="h-4 w-4"/>:null}{saved?"Saved":"Save profile"}</Button></div></form><aside className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]"><ShieldCheck className="h-[18px] w-[18px]"/></span><h2 className="mt-5 text-sm font-semibold">Access role</h2><div className="mt-3"><Badge tone="primary">{user.role}</Badge></div><p className="mt-4 text-xs leading-6 text-[var(--text-muted)]">Admins and moderators can manage shared knowledge. Members can manage the content they create.</p></aside></div></div>;
+export default async function SettingsPage() {
+  const session = await getServerSession();
+  if (!session) redirect("/login");
+  const user = await getOwnProfile(session.id);
+  return <SettingsClient initialUser={serializeForClient({ id: user.id, name: user.name, email: user.email, role: user.role, bio: user.bio })} />;
 }

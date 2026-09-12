@@ -24,21 +24,11 @@ const navigation = [
 
 type Me = { id: string; name: string; email: string; role: string };
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, initialUser }: { children: React.ReactNode; initialUser: Me }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [me, setMe] = useState<Me | null>(null);
+  const [me] = useState<Me | null>(initialUser);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then(async (res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data) => setMe(data.user))
-      .catch(() => router.replace("/login"));
-  }, [router]);
 
   useEffect(() => setMobileOpen(false), [pathname]);
 

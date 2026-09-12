@@ -65,6 +65,15 @@ export async function requireUser(request: NextRequest) {
   return user;
 }
 
+export async function requireServerUser() {
+  const session = await getServerSession();
+  if (!session) return null;
+  return prisma.user.findUnique({
+    where: { id: session.id },
+    select: { id: true, name: true, email: true, role: true, bio: true, avatarUrl: true },
+  });
+}
+
 export function canManage(ownerId: string, user: { id: string; role: string }) {
   return ownerId === user.id || user.role === "ADMIN" || user.role === "MODERATOR";
 }
