@@ -74,7 +74,7 @@ Optional admin credentials can be configured in `.env`:
 
 ```env
 SEED_ADMIN_EMAIL="admin@devknowledge.local"
-SEED_ADMIN_PASSWORD="Admin123!"
+SEED_ADMIN_PASSWORD=""
 ```
 
 Then seed:
