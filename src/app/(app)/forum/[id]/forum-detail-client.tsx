@@ -66,7 +66,7 @@ type ForumData = {
 
 export default function ForumDetailClient({ id, initialData }: { id: string; initialData: ForumData }) {
   const router = useRouter();
-  const [data, setData] = useState<ForumData | null>(initialData);
+  const [data, setData] = useState<ForumData>(initialData);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
