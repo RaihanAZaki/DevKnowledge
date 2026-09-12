@@ -117,7 +117,43 @@ export async function listUserGroups(
       },
     });
 
-  return groups;
+  return Promise.all(
+    groups.map(
+      async (group) => {
+        const membership =
+          group.members.find(
+            (member) =>
+              member.userId ===
+              userId,
+          );
+
+        const unreadCount =
+          membership
+            ? await prisma.chatGroupMessage.count({
+                where: {
+                  groupId:
+                    group.id,
+
+                  senderId: {
+                    not:
+                      userId,
+                  },
+
+                  createdAt: {
+                    gt:
+                      membership.lastReadAt,
+                  },
+                },
+              })
+            : 0;
+
+        return {
+          ...group,
+          unreadCount,
+        };
+      },
+    ),
+  );
 }
 
 export async function getAcceptedFriends(
@@ -455,6 +491,20 @@ export async function getGroupMessages(
       take: 100,
     });
 
+  await prisma.chatGroupMember.update({
+    where: {
+      groupId_userId: {
+        groupId,
+        userId,
+      },
+    },
+
+    data: {
+      lastReadAt:
+        new Date(),
+    },
+  });
+
   return messages.reverse();
 }
 
@@ -743,6 +793,192 @@ export async function deleteGroup(
   await prisma.chatGroup.delete({
     where: {
       id: groupId,
+    },
+  });
+}
+
+export async function markGroupAsRead(
+  groupId: string,
+  userId: string,
+) {
+  await requireMembership(
+    groupId,
+    userId,
+  );
+
+  return prisma.chatGroupMember.update({
+    where: {
+      groupId_userId: {
+        groupId,
+        userId,
+      },
+    },
+
+    data: {
+      lastReadAt:
+        new Date(),
+    },
+  });
+}
+
+export async function updateGroupAvatar({
+  groupId,
+  userId,
+  file,
+}: {
+  groupId: string;
+  userId: string;
+  file: File;
+}) {
+  await requireGroupManager(
+    groupId,
+    userId,
+  );
+
+  if (
+    !file.type.startsWith(
+      "image/",
+    )
+  ) {
+    throw new AppError(
+      "Only image files are allowed.",
+      400,
+    );
+  }
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ];
+
+  if (
+    !allowedTypes.includes(
+      file.type,
+    )
+  ) {
+    throw new AppError(
+      "Only JPG, PNG, and WEBP images are allowed.",
+      400,
+    );
+  }
+
+  // Karena image disimpan langsung
+  // ke PostgreSQL sebagai Base64.
+  const maxSize =
+    1024 * 1024;
+
+  if (
+    file.size > maxSize
+  ) {
+    throw new AppError(
+      "Maximum group photo size is 1 MB.",
+      400,
+    );
+  }
+
+  const arrayBuffer =
+    await file.arrayBuffer();
+
+  const buffer =
+    Buffer.from(
+      arrayBuffer,
+    );
+
+  const base64 =
+    buffer.toString(
+      "base64",
+    );
+
+  const dataUrl =
+    `data:${file.type};base64,${base64}`;
+
+  return prisma.chatGroup.update({
+    where: {
+      id: groupId,
+    },
+
+    data: {
+      avatarUrl:
+        dataUrl,
+    },
+
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true,
+    },
+  });
+}
+
+export async function setGroupMemberRole({
+  groupId,
+  actorId,
+  memberId,
+  role,
+}: {
+  groupId: string;
+  actorId: string;
+  memberId: string;
+  role:
+    | "ADMIN"
+    | "MEMBER";
+}) {
+  const actor =
+    await requireMembership(
+      groupId,
+      actorId,
+    );
+
+  if (
+    actor.role !==
+    "OWNER"
+  ) {
+    throw new AppError(
+      "Only the group owner can manage admins.",
+      403,
+    );
+  }
+
+  const target =
+    await prisma.chatGroupMember.findUnique({
+      where: {
+        groupId_userId: {
+          groupId,
+          userId:
+            memberId,
+        },
+      },
+    });
+
+  if (!target) {
+    throw new AppError(
+      "Member not found.",
+      404,
+    );
+  }
+
+  if (
+    target.role ===
+    "OWNER"
+  ) {
+    throw new AppError(
+      "Owner role cannot be changed.",
+      400,
+    );
+  }
+
+  return prisma.chatGroupMember.update({
+    where: {
+      groupId_userId: {
+        groupId,
+        userId:
+          memberId,
+      },
+    },
+
+    data: {
+      role,
     },
   });
 }

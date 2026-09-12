@@ -321,7 +321,7 @@ model ChatGroup {
   id          String  @id @default(cuid())
   name        String
   description String?
-  avatarUrl   String?
+  avatarUrl   String?  @db.Text
 
   ownerId String
   owner   User   @relation("OwnedChatGroups", fields: [ownerId], references: [id], onDelete: Cascade)
@@ -343,15 +343,16 @@ model ChatGroupMember {
   group   ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   role GroupRole @default(MEMBER)
 
-  joinedAt DateTime @default(now())
+  joinedAt  DateTime @default(now())
+  lastReadAt DateTime @default(now())
 
   @@unique([groupId, userId])
-  @@index([userId])
   @@index([groupId])
+  @@index([userId])
 }
 
 model ChatGroupMessage {
