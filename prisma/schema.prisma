@@ -23,11 +23,11 @@ enum KnowledgeCategory {
 }
 
 model User {
-  id                     String          @id @default(cuid())
+  id                     String              @id @default(cuid())
   name                   String
-  email                  String          @unique
+  email                  String              @unique
   passwordHash           String
-  role                   Role            @default(MEMBER)
+  role                   Role                @default(MEMBER)
   bio                    String?
   avatarUrl              String?
   snippets               CodeSnippet[]
@@ -38,12 +38,16 @@ model User {
   bookmarks              Bookmark[]
   sharedDocuments        DocumentShare[]
   auditLogs              AuditLog[]
-  sentFriendRequests     Friendship[]    @relation("FriendshipRequester")
-  receivedFriendRequests Friendship[]    @relation("FriendshipAddressee")
-  sentMessages           DirectMessage[] @relation("SentMessages")
-  receivedMessages       DirectMessage[] @relation("ReceivedMessages")
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  reputation             UserReputation?
+  reputationHistory      ReputationHistory[]
+  badges                 UserBadge[]
+  notifications          Notification[]
+  sentFriendRequests     Friendship[]        @relation("FriendshipRequester")
+  receivedFriendRequests Friendship[]        @relation("FriendshipAddressee")
+  sentMessages           DirectMessage[]     @relation("SentMessages")
+  receivedMessages       DirectMessage[]     @relation("ReceivedMessages")
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
 }
 
 model CodeSnippet {
@@ -68,6 +72,7 @@ model CodeSnippet {
   @@index([language])
   @@index([category])
   @@index([authorId])
+  @@index([createdAt])
 }
 
 model Documentation {
@@ -89,6 +94,7 @@ model Documentation {
   @@index([language])
   @@index([category])
   @@index([authorId])
+  @@index([isPublished, visibility,createdAt])
 }
 
 model DocumentShare {
@@ -121,7 +127,7 @@ model ForumThread {
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
-  @@index([category])
+  @@index([category,createdAt])
   @@index([authorId])
 }
 
@@ -136,7 +142,7 @@ model ForumComment {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
-  @@index([threadId])
+  @@index([threadId,createdAt])
   @@index([authorId])
 }
 
@@ -160,6 +166,7 @@ model Bookmark {
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@unique([userId, targetId, type])
 }
 
 enum BookmarkType {
@@ -177,6 +184,8 @@ model SnippetVersion {
   reason     String      @db.Text
   createdAt  DateTime    @default(now())
   snippet    CodeSnippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+
+  @@index([snippetId])
 }
 
 model AuditLog {
@@ -193,7 +202,7 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
-  @@index([entity])
+  @@index([entity,entityId])
   @@index([createdAt])
 }
 
@@ -214,8 +223,7 @@ model Friendship {
 
   @@unique([requesterId, addresseeId])
   @@index([requesterId])
-  @@index([addresseeId])
-  @@index([status])
+  @@index([status,addresseeId])
 }
 
 model DirectMessage {
@@ -232,4 +240,59 @@ model DirectMessage {
 
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, isRead])
+}
+
+model UserReputation {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  score     Int      @default(0)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model ReputationHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  points      Int
+  referenceId String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  icon        String
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  user      User     @relation(fields: [userId], references: [id])
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String
+  isRead      Boolean  @default(false)
+  referenceId String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
 }

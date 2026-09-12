@@ -9,6 +9,8 @@ import { GhostButton } from "@/components/ui";
 import { initials } from "@/lib/format";
 import GlobalSearch from "@/components/global-search";
 import ChatWidget from "@/components/chat-widget";
+import FloatingAction from "./floating-action";
+import NotificationBell from "./notification-bell";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -115,30 +117,60 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] border-r border-[var(--border)] bg-[var(--surface-soft)] lg:block">{sidebar}</aside>
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} aria-label="Close menu" />
-          <aside className="relative h-full w-[280px] border-r border-[var(--border)] bg-[var(--surface-soft)] shadow-2xl">
-            <button className="absolute right-3 top-3 rounded-lg p-2 text-[var(--text-muted)]" onClick={() => setMobileOpen(false)}><X className="h-4 w-4" /></button>
-            {sidebar}
-          </aside>
+  <div className="min-h-screen bg-[var(--background)]">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] border-r border-[var(--border)] bg-[var(--surface-soft)] lg:block">
+      {sidebar}
+    </aside>
+
+    {mobileOpen ? (
+      <div className="fixed inset-0 z-50 lg:hidden">
+        <button
+          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close menu"
+        />
+
+        <aside className="relative h-full w-[280px] border-r border-[var(--border)] bg-[var(--surface-soft)] shadow-2xl">
+          <button
+            className="absolute right-3 top-3 rounded-lg p-2 text-[var(--text-muted)]"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          {sidebar}
+        </aside>
+      </div>
+    ) : null}
+
+    <div className="lg:pl-[248px]">
+      <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="rounded-lg p-2 text-[var(--text-soft)] lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <div className="hidden text-sm font-medium text-[var(--text-soft)] sm:block">
+          {current?.label ?? "DevKnowledge"}
         </div>
-      ) : null}
-      <div className="lg:pl-[248px]">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] px-4 backdrop-blur-xl sm:px-6 lg:px-8">
-          <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-[var(--text-soft)] lg:hidden"><Menu className="h-5 w-5" /></button>
-          <div className="hidden text-sm font-medium text-[var(--text-soft)] sm:block">{current?.label ?? "DevKnowledge"}</div>
-         <div className="hidden md:block">
-            <GlobalSearch />
-          </div>
-        </header>
-        <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">{children}</main>
-      </div>
-      <div className="min-h-screen bg-[var(--background)]">
-        <ChatWidget />
-      </div>
+       
+   <div className="ml-auto flex items-center gap-3">
+
+<NotificationBell />
+
+<GlobalSearch />
+
+</div>
+      </header>
+
+      <main className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-7">
+        {children}
+      </main>
     </div>
-  );
+
+    <FloatingAction />
+  </div>
+);
 }

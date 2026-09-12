@@ -27,7 +27,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Overview" title={`Good afternoon, ${firstName}.`} description="Everything your team knows, organized around the context developers actually need." action={<Link href="/snippets/new" className="inline-flex items-center gap-2 rounded-xl bg-[var(--text)] px-4 py-2.5 text-sm font-medium text-[var(--surface)]"><Plus className="h-4 w-4" /> New knowledge</Link>} />
+      <PageHeader eyebrow="Overview" title={`Good afternoon, ${firstName}.`} description="Everything your team knows, organized around the context developers actually need."/>
       <div className="grid gap-4 md:grid-cols-3">
         {cards.map(({ label, value, icon: Icon, href, note }) => (
           <Link href={href} key={label} className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow)]">

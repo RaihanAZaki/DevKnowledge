@@ -290,6 +290,120 @@ export default function ProfilePage() {
             </button>
 
             <div className="mt-5 space-y-2.5 text-sm text-[var(--text-soft)]">
+              <section className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+
+<div className="flex items-center justify-between">
+
+<div>
+
+<p className="text-xs text-[var(--text-muted)]">
+Reputation
+</p>
+
+<h2 className="mt-1 text-3xl font-semibold">
+⭐ 320
+</h2>
+
+</div>
+
+
+<div
+className="
+grid
+h-12
+w-12
+place-items-center
+rounded-xl
+bg-[var(--primary-soft)]
+text-[var(--primary)]
+"
+>
+🏆
+</div>
+
+
+</div>
+
+
+<div className="mt-5 grid grid-cols-3 gap-3">
+
+
+<div>
+<p className="text-xs text-[var(--text-muted)]">
+Threads
+</p>
+
+<p className="mt-1 font-semibold">
+{profile._count.threads}
+</p>
+
+</div>
+
+
+
+<div>
+<p className="text-xs text-[var(--text-muted)]">
+Replies
+</p>
+
+<p className="mt-1 font-semibold">
+48
+</p>
+
+</div>
+
+
+
+
+<div>
+<p className="text-xs text-[var(--text-muted)]">
+Solved
+</p>
+
+<p className="mt-1 font-semibold">
+8
+</p>
+
+</div>
+
+
+</div>
+
+
+</section>
+<div className="mt-4 flex flex-wrap gap-2">
+
+<span
+className="
+rounded-full
+bg-yellow-100
+px-3
+py-1
+text-xs
+font-medium
+text-yellow-700
+"
+>
+🏆 Problem Solver
+</span>
+
+
+<span
+className="
+rounded-full
+bg-blue-100
+px-3
+py-1
+text-xs
+font-medium
+text-blue-700
+"
+>
+🔥 Top Contributor
+</span>
+
+
+</div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-[var(--text-muted)]" />
                 <span className="truncate">

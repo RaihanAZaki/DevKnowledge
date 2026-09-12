@@ -1,8 +1,2 @@
-import { NextResponse } from "next/server";
-import { AUTH_COOKIE } from "@/lib/constants";
-
-export async function POST() {
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(AUTH_COOKIE, "", { httpOnly: true, sameSite: "lax", maxAge: 0, path: "/" });
-  return response;
-}
+// Thin Next.js route adapter. Backend implementation lives under src/server.
+export { POST } from "@/server/handlers/auth/logout/handler";

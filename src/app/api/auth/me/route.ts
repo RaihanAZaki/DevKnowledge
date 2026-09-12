@@ -1,14 +1,2 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
-import { jsonError, safeError } from "@/lib/http";
-
-export async function GET(request: NextRequest) {
-  try {
-    const user = await requireUser(request);
-    if (!user) return jsonError("Unauthorized.", 401);
-    return NextResponse.json({ user });
-  } catch (error) {
-    return safeError(error);
-  }
-}
+// Thin Next.js route adapter. Backend implementation lives under src/server.
+export { GET } from "@/server/handlers/auth/me/handler";
