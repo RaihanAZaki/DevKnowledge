@@ -42,6 +42,10 @@ model User {
   reputationHistory      ReputationHistory[]
   badges                 UserBadge[]
   notifications          Notification[]
+  storedFiles            StoredFile[]
+  ownedChatGroups        ChatGroup[]         @relation("OwnedChatGroups")
+  chatGroupMemberships   ChatGroupMember[]
+  chatGroupMessages      ChatGroupMessage[]
   sentFriendRequests     Friendship[]        @relation("FriendshipRequester")
   receivedFriendRequests Friendship[]        @relation("FriendshipAddressee")
   sentMessages           DirectMessage[]     @relation("SentMessages")
@@ -94,7 +98,7 @@ model Documentation {
   @@index([language])
   @@index([category])
   @@index([authorId])
-  @@index([isPublished, visibility,createdAt])
+  @@index([isPublished, visibility, createdAt])
 }
 
 model DocumentShare {
@@ -127,7 +131,7 @@ model ForumThread {
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
-  @@index([category,createdAt])
+  @@index([category, createdAt])
   @@index([authorId])
 }
 
@@ -142,7 +146,7 @@ model ForumComment {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
-  @@index([threadId,createdAt])
+  @@index([threadId, createdAt])
   @@index([authorId])
 }
 
@@ -165,8 +169,8 @@ model Bookmark {
   createdAt DateTime     @default(now())
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@unique([userId, targetId, type])
+  @@index([userId])
 }
 
 enum BookmarkType {
@@ -202,7 +206,7 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
-  @@index([entity,entityId])
+  @@index([entity, entityId])
   @@index([createdAt])
 }
 
@@ -223,7 +227,7 @@ model Friendship {
 
   @@unique([requesterId, addresseeId])
   @@index([requesterId])
-  @@index([status,addresseeId])
+  @@index([status, addresseeId])
 }
 
 model DirectMessage {
@@ -295,4 +299,80 @@ model Notification {
 
   @@index([userId, createdAt])
   @@index([userId, isRead])
+}
+
+model StoredFile {
+  id           String   @id @default(cuid())
+  name         String
+  originalName String
+  pathname     String   @unique
+  contentType  String
+  size         Int
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ChatGroup {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  avatarUrl   String?
+
+  ownerId String
+  owner   User   @relation("OwnedChatGroups", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  members  ChatGroupMember[]
+  messages ChatGroupMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([updatedAt])
+}
+
+model ChatGroupMember {
+  id String @id @default(cuid())
+
+  groupId String
+  group   ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role GroupRole @default(MEMBER)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@index([groupId])
+}
+
+model ChatGroupMessage {
+  id      String @id @default(cuid())
+  content String @db.Text
+
+  groupId String
+  group   ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId, createdAt])
+  @@index([senderId])
+}
+
+enum GroupRole {
+  OWNER
+  ADMIN
+  MEMBER
 }

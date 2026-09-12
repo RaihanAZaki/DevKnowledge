@@ -209,12 +209,31 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
         description="A calm, searchable home for implementation notes, technical guides, and team conventions."
         action={
           <Link
-            href="/documentation/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--text)] px-4 py-2.5 text-sm font-medium text-[var(--surface)]"
-          >
-            <Plus className="h-4 w-4" />
-            New document
-          </Link>
+  href="/documentation/new"
+  className="
+    inline-flex
+    h-10
+    items-center
+    justify-center
+    gap-2
+    rounded-xl
+    border
+    border-[var(--border)]
+    bg-white
+    px-4
+    text-sm
+    font-medium
+    text-[var(--text)]
+    shadow-sm
+    transition-all
+    hover:border-[var(--primary)]
+    hover:text-white
+    hover:shadow-md
+  "
+>
+  <Plus className="h-4 w-4" />
+  Create document
+</Link>
         }
       />
 
@@ -271,7 +290,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                className="grid h-10 w-10 shrink-0 place-items-center text-[var(--text-muted)]"
+                className="grid h-10 w-10 shrink-0 place-items-center"
                 aria-label="Search documentation"
               >
                 <Search className="h-4 w-4" />
@@ -318,7 +337,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
                 className={`flex h-10 items-center gap-2 rounded-xl border px-3 transition ${
                   categories.length > 0
                     ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
-                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
+                    : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]"
                 }`}
                 aria-label="Filter categories"
               >
@@ -408,7 +427,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
                 className={`flex h-10 items-center gap-2 rounded-xl border px-3 transition ${
                   selectedLanguages.length > 0
                     ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
-                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
+                    : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]"
                 }`}
                 aria-label="Filter languages"
               >

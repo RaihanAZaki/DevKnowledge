@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, Bot, Braces, ChevronRight, LayoutDashboard, LogOut, Menu, MessageSquareText, Users, Search, Settings, Sparkles, X, ScrollText } from "lucide-react";
+import { BookOpenText, Bot, Braces, ChevronRight, LayoutDashboard, LogOut, Menu, MessageSquareText, Users, Archive, Search, Settings, Sparkles, X, ScrollText } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { GhostButton } from "@/components/ui";
 import { initials } from "@/lib/format";
@@ -18,8 +18,9 @@ const navigation = [
   { href: "/documentation", label: "Documentation", icon: BookOpenText },
   { href: "/ai", label: "AI Chat", icon: Bot },
   { href: "/forum", label: "Forum", icon: MessageSquareText },
-  { href: "/audit-logs", label: "Audit Log", icon: ScrollText },
-  { href: "/friends", label: "Friends", icon: Users }
+  { href: "/files",  label: "My Files",icon: Archive },
+  { href: "/friends", label: "Friends", icon: Users },
+  { href: "/audit-logs", label: "Audit Log", icon: ScrollText }
 ];
 
 type Me = { id: string; name: string; email: string; role: string };
@@ -160,7 +161,7 @@ export function AppShell({ children, initialUser }: { children: React.ReactNode;
       </main>
     </div>
 
-    <FloatingAction />
+    <ChatWidget />
   </div>
 );
 }

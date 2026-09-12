@@ -13,10 +13,22 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { Badge, Button, GhostButton, Textarea } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  GhostButton,
+  Textarea,
+} from "@/components/ui";
 
-import { CATEGORY_LABEL } from "@/lib/constants";
-import { formatDate, initials } from "@/lib/format";
+import {
+  CATEGORY_LABEL,
+} from "@/lib/constants";
+
+import {
+  formatDate,
+  initials,
+} from "@/lib/format";
+
 
 type Comment = {
   id: string;
@@ -34,6 +46,7 @@ type Comment = {
   };
 };
 
+
 type Thread = {
   id: string;
 
@@ -50,540 +63,913 @@ type Thread = {
   createdAt: string;
 
   author: {
+    id?: string;
     name: string;
+    role?: string;
   };
 
   comments: Comment[];
 };
 
+
 type ForumData = {
   thread: Thread;
 
+  /**
+   * Owner / Admin / Moderator.
+   * Dipakai untuk delete/moderation.
+   */
   canManage: boolean;
+
+  /**
+   * Khusus pembuat thread.
+   * Hanya ini yang boleh memberikan
+   * Accepted Solution.
+   */
+  isThreadOwner: boolean;
 
   currentUserId: string;
 };
 
-export default function ForumDetailClient({ id, initialData }: { id: string; initialData: ForumData }) {
+
+type Props = {
+  id: string;
+
+  initialData: ForumData;
+};
+
+
+export default function ForumDetailClient({
+  id,
+  initialData,
+}: Props) {
   const router = useRouter();
-  const [data, setData] = useState<ForumData>(initialData);
-  const [replyText, setReplyText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+
+  const [data, setData] =
+    useState<ForumData>(initialData);
+
+  const [replyText, setReplyText] =
+    useState("");
+
+  const [sending, setSending] =
+    useState(false);
+
+  const [
+    acceptingCommentId,
+    setAcceptingCommentId,
+  ] =
+    useState<string | null>(null);
+
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] =
+    useState<string | null>(null);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
 
   async function load() {
-    const response = await fetch(`/api/forum/${id}`);
-    const json = await response.json();
-    setData(json);
-  }
+    const response =
+      await fetch(
+        `/api/forum/${id}`,
+        {
+          cache: "no-store",
+        },
+      );
 
-  async function reply(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!replyText.trim()) {
+    if (!response.ok) {
       return;
     }
 
-    setSending(true);
+    const json: ForumData =
+      await response.json();
 
-    const response = await fetch(`/api/forum/${id}/comments`, {
-      method: "POST",
+    setData(json);
+  }
 
-      headers: {
-        "Content-Type": "application/json",
-      },
 
-      body: JSON.stringify({
-        content: replyText.trim(),
-      }),
-    });
+  async function reply(
+    event:
+      React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
 
-    setSending(false);
+    const content =
+      replyText.trim();
 
-    if (response.ok) {
+    if (!content) {
+      return;
+    }
+
+    try {
+      setSending(true);
+
+      const response =
+        await fetch(
+          `/api/forum/${id}/comments`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              content,
+            }),
+          },
+        );
+
+      if (!response.ok) {
+        return;
+      }
+
       setReplyText("");
 
-      load();
+      await load();
+
+      // refresh server component /
+      // reputation card
+      router.refresh();
+    } finally {
+      setSending(false);
     }
   }
 
-  async function accept(commentId: string) {
-    const response = await fetch(
-      `/api/forum/${id}/comments/${commentId}/accept`,
-      {
-        method: "PUT",
-      },
-    );
 
-    if (response.ok) {
-      load();
+  async function accept(
+    commentId: string,
+  ) {
+    if (!data.isThreadOwner) {
+      return;
+    }
+
+    try {
+      setAcceptingCommentId(
+        commentId,
+      );
+
+      const response =
+        await fetch(
+          `/api/forum/${id}/comments/${commentId}/accept`,
+          {
+            method: "PUT",
+          },
+        );
+
+      if (!response.ok) {
+        return;
+      }
+
+      await load();
+
+      // Reputation +10 ikut refresh
+      router.refresh();
+    } finally {
+      setAcceptingCommentId(
+        null,
+      );
     }
   }
+
 
   async function deleteComment() {
     if (!deleteTarget) {
       return;
     }
 
-    setDeleting(true);
+    try {
+      setDeleting(true);
 
-    const response = await fetch(`/api/forum/${id}/comments/${deleteTarget}`, {
-      method: "DELETE",
-    });
+      const response =
+        await fetch(
+          `/api/forum/${id}/comments/${deleteTarget}`,
+          {
+            method: "DELETE",
+          },
+        );
 
-    setDeleting(false);
+      if (!response.ok) {
+        return;
+      }
 
-    if (response.ok) {
       setDeleteTarget(null);
 
-      load();
+      await load();
+
+      router.refresh();
+    } finally {
+      setDeleting(false);
     }
   }
 
-  async function removeThread() {
-    const confirm = window.confirm("Delete this discussion?");
 
-    if (!confirm) {
+  async function removeThread() {
+    const confirmed =
+      window.confirm(
+        "Delete this discussion?",
+      );
+
+    if (!confirmed) {
       return;
     }
 
-    const response = await fetch(`/api/forum/${id}`, {
-      method: "DELETE",
-    });
+    const response =
+      await fetch(
+        `/api/forum/${id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
     if (response.ok) {
       router.push("/forum");
+
+      router.refresh();
     }
   }
 
-  const thread = data.thread;
+
+  const thread =
+    data.thread;
+
 
   return (
     <div className="mx-auto max-w-5xl">
+      {/* BACK */}
+
       <Link
         href="/forum"
         className="
-mb-7
-inline-flex
-items-center
-gap-2
-text-sm
-text-[var(--text-soft)]
-"
+          mb-7
+          inline-flex
+          items-center
+          gap-2
+          text-sm
+          text-[var(--text-soft)]
+          transition
+          hover:text-[var(--text)]
+        "
       >
         <ArrowLeft className="h-4 w-4" />
+
         Forum
       </Link>
 
+
+      {/* THREAD */}
+
       <section
         className="
-rounded-2xl
-border
-border-[var(--border)]
-bg-[var(--surface)]
-p-6
-sm:p-8
-"
+          rounded-2xl
+          border
+          border-[var(--border)]
+          bg-[var(--surface)]
+          p-6
+          sm:p-8
+        "
       >
         <div
           className="
-flex
-items-start
-justify-between
-gap-4
-"
+            flex
+            items-start
+            justify-between
+            gap-4
+          "
         >
-          <div>
+          <div className="min-w-0 flex-1">
             <div
               className="
-flex
-gap-2
-"
+                flex
+                flex-wrap
+                gap-2
+              "
             >
-              <Badge>{CATEGORY_LABEL[thread.category]}</Badge>
+              <Badge>
+                {
+                  CATEGORY_LABEL[
+                    thread.category
+                  ]
+                }
+              </Badge>
 
-              {thread.comments.some((item) => item.isAccepted) && (
+              {thread.comments.some(
+                (item) =>
+                  item.isAccepted,
+              ) && (
                 <Badge tone="success">
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  <CheckCircle2
+                    className="
+                      mr-1
+                      h-3
+                      w-3
+                    "
+                  />
+
                   Solved
                 </Badge>
               )}
             </div>
 
+
             <h1
               className="
-mt-4
-text-3xl
-font-semibold
-tracking-[-0.04em]
-"
+                mt-4
+                text-3xl
+                font-semibold
+                tracking-[-0.04em]
+              "
             >
               {thread.title}
             </h1>
 
+
             <p
               className="
-mt-5
-whitespace-pre-wrap
-text-sm
-leading-7
-text-[var(--text-soft)]
-"
+                mt-5
+                whitespace-pre-wrap
+                text-sm
+                leading-7
+                text-[var(--text-soft)]
+              "
             >
               {thread.content}
             </p>
 
+
             <div
               className="
-mt-5
-text-xs
-text-[var(--text-muted)]
-"
+                mt-5
+                text-xs
+                text-[var(--text-muted)]
+              "
             >
-              Asked by {thread.author.name}
+              Asked by{" "}
+              {thread.author.name}
+
               {" · "}
-              {formatDate(thread.createdAt)}
+
+              {formatDate(
+                thread.createdAt,
+              )}
             </div>
           </div>
 
+
           {data.canManage && (
-            <GhostButton onClick={removeThread} className="text-red-500">
+            <GhostButton
+              onClick={
+                removeThread
+              }
+              className="text-red-500"
+              title="Delete discussion"
+            >
               <Trash2 className="h-4 w-4" />
             </GhostButton>
           )}
         </div>
 
-        {thread.tags.length > 0 && (
+
+        {thread.tags.length >
+          0 && (
           <div
             className="
-mt-5
-flex
-gap-2
-"
+              mt-5
+              flex
+              flex-wrap
+              gap-2
+            "
           >
-            {thread.tags.map((tag) => (
-              <span
-                key={tag}
-                className="
-rounded-lg
-bg-[var(--surface-soft)]
-px-2.5
-py-1
-text-xs
-text-[var(--text-muted)]
-"
-              >
-                #{tag}
-              </span>
-            ))}
+            {thread.tags.map(
+              (tag) => (
+                <span
+                  key={tag}
+                  className="
+                    rounded-lg
+                    bg-[var(--surface-soft)]
+                    px-2.5
+                    py-1
+                    text-xs
+                    text-[var(--text-muted)]
+                  "
+                >
+                  #{tag}
+                </span>
+              ),
+            )}
           </div>
         )}
       </section>
 
+
+      {/* REPLIES TITLE */}
+
       <div
         className="
-mt-7
-flex
-items-center
-gap-2
-"
+          mt-7
+          flex
+          items-center
+          gap-2
+        "
       >
         <MessageSquareText
           className="
-h-4
-w-4
-text-[var(--primary)]
-"
+            h-4
+            w-4
+            text-[var(--primary)]
+          "
         />
 
         <h2
           className="
-text-sm
-font-semibold
-"
+            text-sm
+            font-semibold
+          "
         >
-          {thread.comments.length} replies
+          {thread.comments.length}{" "}
+          {thread.comments.length ===
+          1
+            ? "reply"
+            : "replies"}
         </h2>
       </div>
 
+
+      {/* COMMENTS */}
+
       <div
         className="
-mt-3
-space-y-3
-"
+          mt-3
+          space-y-3
+        "
       >
-        {thread.comments.map((comment) => (
-          <article
-            key={comment.id}
-            className={`
-rounded-2xl
-border
-bg-[var(--surface)]
-p-5
+        {thread.comments.map(
+          (comment) => {
+            const canDelete =
+              comment.author.id ===
+                data.currentUserId ||
+              data.canManage;
 
-${comment.isAccepted ? "border-emerald-300/60" : "border-[var(--border)]"}
+            const accepting =
+              acceptingCommentId ===
+              comment.id;
 
-`}
-          >
-            <div className="flex gap-3">
-              <div
-                className="
-grid
-h-9
-w-9
-place-items-center
-rounded-full
-bg-[var(--surface-soft)]
-text-xs
-font-semibold
-"
+            return (
+              <article
+                key={comment.id}
+                className={`
+                  rounded-2xl
+                  border
+                  bg-[var(--surface)]
+                  p-5
+                  transition
+
+                  ${
+                    comment.isAccepted
+                      ? `
+                        border-emerald-300/70
+                        ring-1
+                        ring-emerald-200/40
+                      `
+                      : `
+                        border-[var(--border)]
+                      `
+                  }
+                `}
               >
-                {initials(comment.author.name)}
-              </div>
+                <div className="flex gap-3">
+                  {/* AVATAR */}
 
-              <div className="flex-1">
-                <div
-className="
-flex
-items-center
-justify-between
-gap-3
-"
->
-
-  <div
-    className="
-    flex
-    items-center
-    gap-2
-    "
-  >
-
-    <span className="text-sm font-medium">
-      {comment.author.name}
-    </span>
+                  <div
+                    className="
+                      grid
+                      h-9
+                      w-9
+                      shrink-0
+                      place-items-center
+                      rounded-full
+                      bg-[var(--surface-soft)]
+                      text-xs
+                      font-semibold
+                    "
+                  >
+                    {initials(
+                      comment.author
+                        .name,
+                    )}
+                  </div>
 
 
-    <span
-      className="
-      text-xs
-      text-[var(--text-muted)]
-      "
-    >
-      {formatDate(comment.createdAt)}
-    </span>
+                  <div className="min-w-0 flex-1">
+                    {/* COMMENT HEADER */}
+
+                    <div
+                      className="
+                        flex
+                        items-start
+                        justify-between
+                        gap-3
+                      "
+                    >
+                      <div
+                        className="
+                          flex
+                          min-w-0
+                          flex-wrap
+                          items-center
+                          gap-2
+                        "
+                      >
+                        <span
+                          className="
+                            text-sm
+                            font-medium
+                          "
+                        >
+                          {
+                            comment
+                              .author
+                              .name
+                          }
+                        </span>
 
 
-    {comment.isAccepted && (
-      <Badge tone="success">
-        Accepted solution
-      </Badge>
-    )}
-
-  </div>
-
-
-
-  {(comment.author.id === data.currentUserId ||
-    data.canManage) && (
-
-    <button
-      onClick={() => setDeleteTarget(comment.id)}
-      className="
-      inline-flex
-      items-center
-      gap-1.5
-      text-xs
-      font-medium
-      text-red-500
-      hover:text-red-600
-      "
-    >
-
-      <Trash2 className="h-3.5 w-3.5"/>
-
-      Delete
-
-    </button>
-
-  )}
-
-</div>
+                        <span
+                          className="
+                            text-xs
+                            text-[var(--text-muted)]
+                          "
+                        >
+                          {formatDate(
+                            comment.createdAt,
+                          )}
+                        </span>
 
 
+                        {comment.isAccepted && (
+                          <Badge tone="success">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
 
-<p
-className="
-mt-3
-whitespace-pre-wrap
-text-sm
-leading-7
-text-[var(--text-soft)]
-"
->
-  {comment.content}
-</p>
+                            Accepted
+                            solution
+                          </Badge>
+                        )}
+                      </div>
 
 
+                      {/* ACTIONS */}
 
-{data.canManage && !comment.isAccepted && (
+                      <div
+                        className="
+                          flex
+                          shrink-0
+                          items-center
+                          gap-1.5
+                        "
+                      >
+                        {/* ACCEPT SOLUTION
 
-<button
-onClick={() => accept(comment.id)}
-className="
-mt-4
-inline-flex
-items-center
-gap-1.5
-text-xs
-font-medium
-text-[var(--success)]
-"
->
+                            HANYA PEMILIK THREAD
+                        */}
 
-<CheckCircle2 className="h-3.5 w-3.5"/>
+                        {data.isThreadOwner &&
+                          !comment.isAccepted && (
+                            <button
+                              type="button"
+                              disabled={
+                                accepting
+                              }
+                              onClick={() =>
+                                accept(
+                                  comment.id,
+                                )
+                              }
+                              title="Mark as accepted solution"
+                              className="
+                                inline-flex
+                                h-8
+                                w-8
+                                items-center
+                                justify-center
+                                rounded-lg
+                                border
+                                border-[var(--border)]
+                                text-[var(--text-muted)]
+                                transition
 
-Mark as solution
+                                hover:border-emerald-400
+                                hover:bg-emerald-50
+                                hover:text-emerald-600
 
-</button>
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
 
-)}
-              </div>
-            </div>
-          </article>
-        ))}
+                                dark:hover:bg-emerald-950/30
+                              "
+                            >
+                              {accepting ? (
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+
+
+                        {/* ACCEPTED INDICATOR */}
+
+                        {comment.isAccepted && (
+                          <div
+                            title="Accepted solution"
+                            className="
+                              inline-flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-lg
+                              border
+                              border-emerald-300
+                              bg-emerald-50
+                              text-emerald-600
+
+                              dark:bg-emerald-950/30
+                            "
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </div>
+                        )}
+
+
+                        {/* DELETE */}
+
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteTarget(
+                                comment.id,
+                              )
+                            }
+                            title="Delete comment"
+                            className="
+                              inline-flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-lg
+                              text-red-500
+                              transition
+
+                              hover:bg-red-50
+                              hover:text-red-600
+
+                              dark:hover:bg-red-950/30
+                            "
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+
+                    {/* COMMENT */}
+
+                    <p
+                      className="
+                        mt-3
+                        whitespace-pre-wrap
+                        text-sm
+                        leading-7
+                        text-[var(--text-soft)]
+                      "
+                    >
+                      {comment.content}
+                    </p>
+
+
+                    {/* ACCEPTED MESSAGE */}
+
+                    {comment.isAccepted && (
+                      <div
+                        className="
+                          mt-4
+                          inline-flex
+                          items-center
+                          gap-2
+                          rounded-lg
+                          bg-emerald-50
+                          px-3
+                          py-2
+                          text-xs
+                          font-medium
+                          text-emerald-700
+
+                          dark:bg-emerald-950/30
+                          dark:text-emerald-400
+                        "
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+
+                        Accepted by
+                        discussion owner
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          },
+        )}
       </div>
+
+
+      {/* REPLY FORM */}
 
       <form
         onSubmit={reply}
         className="
-mt-5
-rounded-2xl
-border
-border-[var(--border)]
-bg-[var(--surface)]
-p-5
-"
+          mt-5
+          rounded-2xl
+          border
+          border-[var(--border)]
+          bg-[var(--surface)]
+          p-5
+        "
       >
-        <div className="mb-3 text-sm font-semibold">Add your reply</div>
+        <div
+          className="
+            mb-3
+            text-sm
+            font-semibold
+          "
+        >
+          Add your reply
+        </div>
+
 
         <Textarea
           value={replyText}
-          onChange={(e) => setReplyText(e.target.value)}
+          onChange={(event) =>
+            setReplyText(
+              event.target.value,
+            )
+          }
           className="min-h-[150px]"
           placeholder="Share the reasoning, fix, or trade-off..."
           required
         />
 
-        <div className="mt-3 flex justify-end">
+
+        <div
+          className="
+            mt-3
+            flex
+            justify-end
+          "
+        >
           <Button disabled={sending}>
             {sending ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
             ) : (
               <Send className="h-4 w-4" />
             )}
+
             Reply
           </Button>
         </div>
       </form>
 
+
+      {/* DELETE COMMENT MODAL */}
+
       {deleteTarget && (
         <div
           className="
-fixed
-inset-0
-z-50
-flex
-items-center
-justify-center
-bg-black/40
-backdrop-blur-sm
-"
+            fixed
+            inset-0
+            z-50
+            flex
+            items-center
+            justify-center
+            bg-black/40
+            p-4
+            backdrop-blur-sm
+          "
         >
           <div
             className="
-w-full
-max-w-sm
-rounded-2xl
-border
-border-[var(--border)]
-bg-[var(--surface)]
-p-6
-shadow-xl
-"
+              w-full
+              max-w-sm
+              rounded-2xl
+              border
+              border-[var(--border)]
+              bg-[var(--surface)]
+              p-6
+              shadow-xl
+            "
           >
-            <div
-              className="
-flex
-gap-3
-"
-            >
+            <div className="flex gap-3">
               <div
                 className="
-grid
-h-10
-w-10
-place-items-center
-rounded-full
-bg-red-100
-text-red-600
-"
+                  grid
+                  h-10
+                  w-10
+                  shrink-0
+                  place-items-center
+                  rounded-full
+                  bg-red-100
+                  text-red-600
+                "
               >
                 <Trash2 className="h-5 w-5" />
               </div>
 
+
               <div>
-                <h3 className="font-semibold">Delete comment?</h3>
+                <h3 className="font-semibold">
+                  Delete comment?
+                </h3>
 
                 <p
                   className="
-mt-1
-text-sm
-text-[var(--text-soft)]
-"
+                    mt-1
+                    text-sm
+                    text-[var(--text-soft)]
+                  "
                 >
-                  This action cannot be undone.
+                  This action cannot
+                  be undone.
                 </p>
               </div>
             </div>
 
+
             <div
               className="
-mt-6
-flex
-justify-end
-gap-3
-"
+                mt-6
+                flex
+                justify-end
+                gap-3
+              "
             >
               <button
+                type="button"
                 disabled={deleting}
-                onClick={() => setDeleteTarget(null)}
+                onClick={() =>
+                  setDeleteTarget(
+                    null,
+                  )
+                }
                 className="
-rounded-xl
-border
-px-4
-py-2
-text-sm
-"
+                  rounded-xl
+                  border
+                  border-[var(--border)]
+                  px-4
+                  py-2
+                  text-sm
+                  transition
+                  hover:bg-[var(--surface-soft)]
+                "
               >
                 Cancel
               </button>
 
+
               <button
+                type="button"
                 disabled={deleting}
-                onClick={deleteComment}
+                onClick={
+                  deleteComment
+                }
                 className="
-rounded-xl
-bg-red-500
-px-4
-py-2
-text-sm
-font-medium
-text-white
-"
+                  inline-flex
+                  items-center
+                  gap-2
+                  rounded-xl
+                  bg-red-500
+                  px-4
+                  py-2
+                  text-sm
+                  font-medium
+                  text-white
+                  transition
+                  hover:bg-red-600
+                  disabled:opacity-50
+                "
               >
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting && (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                )}
+
+                {deleting
+                  ? "Deleting..."
+                  : "Delete"}
               </button>
             </div>
           </div>

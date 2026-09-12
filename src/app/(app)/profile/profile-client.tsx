@@ -49,17 +49,35 @@ type Profile = {
   threads: ContributionItem[];
 };
 
-type ProfileResponse = {
-  profile: Profile;
+type ReputationData = {
+  score: number;
+  threads: number;
+  replies: number;
+  solved: number;
+};
+
+type ProfileClientProps = {
+  initialProfile: Profile;
+  initialReputation: ReputationData;
 };
 
 type ActivityItem = ContributionItem & {
   type: "snippet" | "document" | "forum";
 };
 
-export default function ProfileClient({ initialProfile }: { initialProfile: Profile }) {
+export default function ProfileClient({
+  initialProfile,
+  initialReputation,
+}: ProfileClientProps) {
   const [profile, setProfile] =
-    useState<Profile | null>(initialProfile);
+    useState<Profile | null>(
+      initialProfile
+    );
+
+  const [reputation] =
+    useState<ReputationData>(
+      initialReputation
+    );
 
   const [loading, setLoading] =
     useState(false);
@@ -74,82 +92,109 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
     useState(initialProfile.name);
 
   const [bio, setBio] =
-    useState(initialProfile.bio ?? "");
-
-  const [avatarUrl, setAvatarUrl] =
-    useState(initialProfile.avatarUrl ?? "");
-
-  const loadProfile = useCallback(async () => {
-  try {
-    setLoading(true);
-
-    const response = await fetch("/api/profile");
-
-    if (response.status === 401) {
-      window.location.href = "/login";
-      return;
-    }
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("PROFILE API ERROR:", data);
-
-      throw new Error(
-        data?.error || "Failed to load profile."
-      );
-    }
-
-    if (!data.profile) {
-      console.error(
-        "Invalid profile response:",
-        data
-      );
-
-      throw new Error(
-        "Profile data was not returned by API."
-      );
-    }
-
-    setProfile(data.profile);
-    setName(data.profile.name ?? "");
-    setBio(data.profile.bio ?? "");
-    setAvatarUrl(
-      data.profile.avatarUrl ?? ""
-    );
-  } catch (error) {
-    console.error(
-      "Load profile error:",
-      error
+    useState(
+      initialProfile.bio ?? ""
     );
 
-    setProfile(null);
-  } finally {
-    setLoading(false);
-  }
-}, []);
+  const [
+    avatarUrl,
+    setAvatarUrl,
+  ] = useState(
+    initialProfile.avatarUrl ?? ""
+  );
+
+  const loadProfile =
+    useCallback(async () => {
+      try {
+        setLoading(true);
+
+        const response =
+          await fetch("/api/profile");
+
+        if (
+          response.status === 401
+        ) {
+          window.location.href =
+            "/login";
+          return;
+        }
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          console.error(
+            "PROFILE API ERROR:",
+            data
+          );
+
+          throw new Error(
+            data?.error ||
+              "Failed to load profile."
+          );
+        }
+
+        if (!data.profile) {
+          console.error(
+            "Invalid profile response:",
+            data
+          );
+
+          throw new Error(
+            "Profile data was not returned by API."
+          );
+        }
+
+        setProfile(
+          data.profile
+        );
+
+        setName(
+          data.profile.name ?? ""
+        );
+
+        setBio(
+          data.profile.bio ?? ""
+        );
+
+        setAvatarUrl(
+          data.profile
+            .avatarUrl ?? ""
+        );
+      } catch (error) {
+        console.error(
+          "Load profile error:",
+          error
+        );
+
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    }, []);
 
   async function saveProfile() {
     try {
       setSaving(true);
 
-      const response = await fetch(
-        "/api/profile",
-        {
-          method: "PUT",
+      const response =
+        await fetch(
+          "/api/profile",
+          {
+            method: "PUT",
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-          body: JSON.stringify({
-            name,
-            bio,
-            avatarUrl,
-          }),
-        }
-      );
+            body: JSON.stringify({
+              name,
+              bio,
+              avatarUrl,
+            }),
+          }
+        );
 
       if (!response.ok) {
         const data =
@@ -175,44 +220,47 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
   }
 
   const activities =
-    useMemo<ActivityItem[]>(() => {
-      if (!profile) {
-        return [];
-      }
+    useMemo<ActivityItem[]>(
+      () => {
+        if (!profile) {
+          return [];
+        }
 
-      return [
-        ...profile.snippets.map(
-          (item) => ({
-            ...item,
-            type: "snippet" as const,
-          })
-        ),
+        return [
+          ...profile.snippets.map(
+            (item) => ({
+              ...item,
+              type: "snippet" as const,
+            })
+          ),
 
-        ...profile.documents.map(
-          (item) => ({
-            ...item,
-            type: "document" as const,
-          })
-        ),
+          ...profile.documents.map(
+            (item) => ({
+              ...item,
+              type: "document" as const,
+            })
+          ),
 
-        ...profile.threads.map(
-          (item) => ({
-            ...item,
-            type: "forum" as const,
-          })
-        ),
-      ]
-        .sort(
-          (a, b) =>
-            new Date(
-              b.updatedAt
-            ).getTime() -
-            new Date(
-              a.updatedAt
-            ).getTime()
-        )
-        .slice(0, 8);
-    }, [profile]);
+          ...profile.threads.map(
+            (item) => ({
+              ...item,
+              type: "forum" as const,
+            })
+          ),
+        ]
+          .sort(
+            (a, b) =>
+              new Date(
+                b.updatedAt
+              ).getTime() -
+              new Date(
+                a.updatedAt
+              ).getTime()
+          )
+          .slice(0, 8);
+      },
+      [profile]
+    );
 
   if (loading) {
     return (
@@ -223,17 +271,22 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
   if (!profile) {
     return (
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 text-sm text-[var(--text-muted)]">
-        Profile could not be loaded.
+        Profile could not be
+        loaded.
       </div>
     );
   }
 
-  const initials = profile.name
-    .split(" ")
-    .map((item) => item[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const initials =
+    profile.name
+      .split(" ")
+      .map(
+        (item) =>
+          item[0]
+      )
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -242,7 +295,9 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
           <div className="sticky top-24">
             {profile.avatarUrl ? (
               <img
-                src={profile.avatarUrl}
+                src={
+                  profile.avatarUrl
+                }
                 alt={profile.name}
                 className="aspect-square w-full max-w-[280px] rounded-full border border-[var(--border)] object-cover"
               />
@@ -285,122 +340,119 @@ export default function ProfileClient({ initialProfile }: { initialProfile: Prof
             </button>
 
             <div className="mt-5 space-y-2.5 text-sm text-[var(--text-soft)]">
+
+              {/* REPUTATION CARD */}
+
               <section className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Reputation
+                    </p>
 
-<div className="flex items-center justify-between">
+                    <h2 className="mt-1 text-3xl font-semibold">
+                      ⭐{" "}
+                      {
+                        reputation.score
+                      }
+                    </h2>
+                  </div>
 
-<div>
+                  <div
+                    className="
+                      grid
+                      h-12
+                      w-12
+                      place-items-center
+                      rounded-xl
+                      bg-[var(--primary-soft)]
+                      text-[var(--primary)]
+                    "
+                  >
+                    🏆
+                  </div>
+                </div>
 
-<p className="text-xs text-[var(--text-muted)]">
-Reputation
-</p>
+                <div className="mt-5 grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Threads
+                    </p>
 
-<h2 className="mt-1 text-3xl font-semibold">
-⭐ 320
-</h2>
+                    <p className="mt-1 font-semibold">
+                      {
+                        reputation.threads
+                      }
+                    </p>
+                  </div>
 
-</div>
+                  <div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Replies
+                    </p>
 
+                    <p className="mt-1 font-semibold">
+                      {
+                        reputation.replies
+                      }
+                    </p>
+                  </div>
 
-<div
-className="
-grid
-h-12
-w-12
-place-items-center
-rounded-xl
-bg-[var(--primary-soft)]
-text-[var(--primary)]
-"
->
-🏆
-</div>
+                  <div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Solved
+                    </p>
 
+                    <p className="mt-1 font-semibold">
+                      {
+                        reputation.solved
+                      }
+                    </p>
+                  </div>
+                </div>
+              </section>
 
-</div>
+              {/* BADGES */}
 
+              <div className="mt-4 flex flex-wrap gap-2">
+                {reputation.solved >
+                  0 && (
+                  <span
+                    className="
+                      rounded-full
+                      bg-yellow-100
+                      px-3
+                      py-1
+                      text-xs
+                      font-medium
+                      text-yellow-700
+                    "
+                  >
+                    🏆 Problem Solver
+                  </span>
+                )}
 
-<div className="mt-5 grid grid-cols-3 gap-3">
+                {reputation.score >=
+                  100 && (
+                  <span
+                    className="
+                      rounded-full
+                      bg-blue-100
+                      px-3
+                      py-1
+                      text-xs
+                      font-medium
+                      text-blue-700
+                    "
+                  >
+                    🔥 Top Contributor
+                  </span>
+                )}
+              </div>
 
-
-<div>
-<p className="text-xs text-[var(--text-muted)]">
-Threads
-</p>
-
-<p className="mt-1 font-semibold">
-{profile._count.threads}
-</p>
-
-</div>
-
-
-
-<div>
-<p className="text-xs text-[var(--text-muted)]">
-Replies
-</p>
-
-<p className="mt-1 font-semibold">
-48
-</p>
-
-</div>
-
-
-
-
-<div>
-<p className="text-xs text-[var(--text-muted)]">
-Solved
-</p>
-
-<p className="mt-1 font-semibold">
-8
-</p>
-
-</div>
-
-
-</div>
-
-
-</section>
-<div className="mt-4 flex flex-wrap gap-2">
-
-<span
-className="
-rounded-full
-bg-yellow-100
-px-3
-py-1
-text-xs
-font-medium
-text-yellow-700
-"
->
-🏆 Problem Solver
-</span>
-
-
-<span
-className="
-rounded-full
-bg-blue-100
-px-3
-py-1
-text-xs
-font-medium
-text-blue-700
-"
->
-🔥 Top Contributor
-</span>
-
-
-</div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-[var(--text-muted)]" />
+
                 <span className="truncate">
                   {profile.email}
                 </span>
@@ -439,7 +491,8 @@ text-blue-700
 
           <section className="mt-6">
             <div className="mb-3 text-sm font-semibold">
-              DevKnowledge contributions
+              DevKnowledge
+              contributions
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
@@ -454,7 +507,9 @@ text-blue-700
               />
 
               <StatCard
-                icon={BookOpenText}
+                icon={
+                  BookOpenText
+                }
                 label="Documentation"
                 value={
                   profile._count
@@ -480,7 +535,8 @@ text-blue-700
           <section className="mt-8">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold">
-                Contribution overview
+                Contribution
+                overview
               </h2>
 
               <span className="text-xs text-[var(--text-muted)]">
@@ -489,44 +545,67 @@ text-blue-700
             </div>
 
             <div className="grid grid-cols-7 gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-14 lg:grid-cols-20">
-              {Array.from(
-                { length: 140 }
-              ).map((_, index) => {
-                const level =
-                  index <
-                  activities.length * 3
-                    ? (index % 4) + 1
-                    : 0;
+              {Array.from({
+                length: 140,
+              }).map(
+                (
+                  _,
+                  index
+                ) => {
+                  const level =
+                    index <
+                    activities.length *
+                      3
+                      ? (index %
+                          4) +
+                        1
+                      : 0;
 
-                return (
-                  <div
-                    key={index}
-                    className={[
-                      "aspect-square rounded-[3px] border border-[var(--border)]",
-                      level === 0
-                        ? "bg-[var(--surface-soft)]"
-                        : "",
-                      level === 1
-                        ? "bg-[color-mix(in_srgb,var(--primary)_25%,var(--surface))]"
-                        : "",
-                      level === 2
-                        ? "bg-[color-mix(in_srgb,var(--primary)_45%,var(--surface))]"
-                        : "",
-                      level === 3
-                        ? "bg-[color-mix(in_srgb,var(--primary)_65%,var(--surface))]"
-                        : "",
-                      level === 4
-                        ? "bg-[var(--primary)]"
-                        : "",
-                    ].join(" ")}
-                  />
-                );
-              })}
+                  return (
+                    <div
+                      key={
+                        index
+                      }
+                      className={[
+                        "aspect-square rounded-[3px] border border-[var(--border)]",
+
+                        level ===
+                        0
+                          ? "bg-[var(--surface-soft)]"
+                          : "",
+
+                        level ===
+                        1
+                          ? "bg-[color-mix(in_srgb,var(--primary)_25%,var(--surface))]"
+                          : "",
+
+                        level ===
+                        2
+                          ? "bg-[color-mix(in_srgb,var(--primary)_45%,var(--surface))]"
+                          : "",
+
+                        level ===
+                        3
+                          ? "bg-[color-mix(in_srgb,var(--primary)_65%,var(--surface))]"
+                          : "",
+
+                        level ===
+                        4
+                          ? "bg-[var(--primary)]"
+                          : "",
+                      ].join(
+                        " "
+                      )}
+                    />
+                  );
+                }
+              )}
             </div>
 
             <p className="mt-2 text-xs text-[var(--text-muted)]">
-              Contribution visualization
-              based on recent knowledge
+              Contribution
+              visualization based on
+              recent knowledge
               activity.
             </p>
           </section>
@@ -537,9 +616,11 @@ text-blue-700
             </h2>
 
             <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-              {activities.length === 0 ? (
+              {activities.length ===
+              0 ? (
                 <div className="px-5 py-10 text-center text-sm text-[var(--text-muted)]">
-                  No contributions yet.
+                  No contributions
+                  yet.
                 </div>
               ) : (
                 <div className="divide-y divide-[var(--border)]">
@@ -568,15 +649,19 @@ text-blue-700
                 </h2>
 
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Update your public
-                  DevKnowledge profile.
+                  Update your
+                  public
+                  DevKnowledge
+                  profile.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() =>
-                  setEditing(false)
+                  setEditing(
+                    false
+                  )
                 }
                 className="rounded-lg p-2 hover:bg-[var(--surface-hover)]"
               >
@@ -592,9 +677,13 @@ text-blue-700
 
                 <input
                   value={name}
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setName(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
                   className="field h-10 w-full px-3 text-sm"
@@ -608,9 +697,13 @@ text-blue-700
 
                 <textarea
                   value={bio}
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setBio(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
                   rows={4}
@@ -625,10 +718,16 @@ text-blue-700
                 </label>
 
                 <input
-                  value={avatarUrl}
-                  onChange={(event) =>
+                  value={
+                    avatarUrl
+                  }
+                  onChange={(
+                    event
+                  ) =>
                     setAvatarUrl(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
                   placeholder="https://..."
@@ -641,7 +740,9 @@ text-blue-700
               <button
                 type="button"
                 onClick={() =>
-                  setEditing(false)
+                  setEditing(
+                    false
+                  )
                 }
                 className="h-9 rounded-lg border border-[var(--border)] px-4 text-sm font-medium"
               >
@@ -652,9 +753,12 @@ text-blue-700
                 type="button"
                 disabled={
                   saving ||
-                  name.trim().length < 2
+                  name.trim()
+                    .length < 2
                 }
-                onClick={saveProfile}
+                onClick={
+                  saveProfile
+                }
                 className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--text)] px-4 text-sm font-medium text-[var(--background)] disabled:opacity-50"
               >
                 <Save className="h-4 w-4" />
@@ -710,14 +814,16 @@ function ContributionRow({
   const href =
     item.type === "snippet"
       ? `/snippets/${item.id}`
-      : item.type === "document"
+      : item.type ===
+          "document"
         ? `/documentation/${item.id}`
         : `/forum/${item.id}`;
 
   const label =
     item.type === "snippet"
       ? "Snippet"
-      : item.type === "document"
+      : item.type ===
+          "document"
         ? "Documentation"
         : "Discussion";
 
@@ -732,14 +838,20 @@ function ContributionRow({
         </div>
 
         <div className="mt-1 flex items-center gap-2 text-xs text-[var(--text-muted)]">
-          <span>{label}</span>
+          <span>
+            {label}
+          </span>
 
           {item.language ? (
             <>
-              <span>·</span>
+              <span>
+                ·
+              </span>
 
               <span>
-                {item.language}
+                {
+                  item.language
+                }
               </span>
             </>
           ) : null}
@@ -747,7 +859,9 @@ function ContributionRow({
       </div>
 
       <div className="shrink-0 text-xs text-[var(--text-muted)]">
-        {formatDate(item.updatedAt)}
+        {formatDate(
+          item.updatedAt
+        )}
       </div>
     </Link>
   );
