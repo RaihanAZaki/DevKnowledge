@@ -247,6 +247,75 @@ export default function ProfileClient({
     }
   }
 
+   async function handleAvatarFile(
+    file: File,
+  ) {
+    const extension = file.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
+
+    const isHeic =
+      file.type === "image/heic" ||
+      file.type === "image/heif" ||
+      extension === "heic" ||
+      extension === "heif";
+
+    if (!isHeic) {
+      await uploadAvatar(file);
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+
+      const heic2any = (
+        await import("heic2any")
+      ).default;
+
+      const converted =
+        await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.85,
+        });
+
+      const convertedBlob =
+        Array.isArray(converted)
+          ? converted[0]
+          : converted;
+
+      const convertedFile =
+        new File(
+          [convertedBlob],
+          file.name.replace(
+            /\.(heic|heif)$/i,
+            ".jpg",
+          ),
+          {
+            type: "image/jpeg",
+          },
+        );
+
+      await uploadAvatar(
+        convertedFile,
+      );
+    } catch (error) {
+      console.error(
+        "HEIC CONVERSION ERROR:",
+        error,
+      );
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to convert HEIC image.",
+      );
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   async function uploadAvatar(
     file: File,
   ) {
@@ -556,23 +625,15 @@ export default function ProfileClient({
                 </button>
 
                 <input
-                  ref={
-                    avatarInputRef
-                  }
+                  ref={avatarInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
                   hidden
-                  onChange={(
-                    event,
-                  ) => {
-                    const file =
-                      event.target
-                        .files?.[0];
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
 
                     if (file) {
-                      void uploadAvatar(
-                        file,
-                      );
+                      void handleAvatarFile(file);
                     }
                   }}
                 />

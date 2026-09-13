@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/server/shared/app-error";
 
+/*
+|--------------------------------------------------------------------------
+| Shared profile select
+|--------------------------------------------------------------------------
+*/
+
 const commonProfileSelect = {
   id: true,
   name: true,
@@ -43,6 +49,12 @@ const commonProfileSelect = {
   },
 };
 
+/*
+|--------------------------------------------------------------------------
+| Own profile
+|--------------------------------------------------------------------------
+*/
+
 export async function getOwnProfile(
   userId: string,
 ) {
@@ -83,6 +95,12 @@ export async function getOwnProfile(
 
   return profile;
 }
+
+/*
+|--------------------------------------------------------------------------
+| Public profile
+|--------------------------------------------------------------------------
+*/
 
 export async function getPublicProfile(
   id: string,
@@ -136,6 +154,7 @@ export async function getPublicProfile(
                   currentUserId,
                 addresseeId: id,
               },
+
               {
                 requesterId: id,
                 addresseeId:
@@ -242,95 +261,18 @@ export async function updateOwnProfile({
 
 /*
 |--------------------------------------------------------------------------
-| Update profile avatar
+| Detect avatar image
 |--------------------------------------------------------------------------
 */
 
-export async function updateProfileAvatar({
-  userId,
-  file,
-}: {
-  userId: string;
-  file: File;
-}) {
-  /*
-  |--------------------------------------------------------------------------
-  | Content type
-  |--------------------------------------------------------------------------
-  */
+type AvatarImageType =
+  | "image/jpeg"
+  | "image/png"
+  | "image/webp";
 
-  const allowedTypes =
-    new Set([
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ]);
-
-  if (
-    !allowedTypes.has(
-      file.type,
-    )
-  ) {
-    throw new AppError(
-      "Only JPG, PNG, and WEBP images are allowed.",
-      400,
-    );
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Empty file
-  |--------------------------------------------------------------------------
-  */
-
-  if (file.size === 0) {
-    throw new AppError(
-      "Image file is empty.",
-      400,
-    );
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Maximum size
-  |--------------------------------------------------------------------------
-  |
-  | Base64 akan lebih besar sekitar 33% dari file asli,
-  | jadi jangan simpan image terlalu besar ke database.
-  |
-  */
-
-  const maxSize =
-    1024 * 1024;
-
-  if (
-    file.size > maxSize
-  ) {
-    throw new AppError(
-      "Maximum profile photo size is 1 MB.",
-      400,
-    );
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Detect actual file signature
-  |--------------------------------------------------------------------------
-  */
-
-  const signature =
-    new Uint8Array(
-      await file
-        .slice(0, 16)
-        .arrayBuffer(),
-    );
-
-  let detectedType:
-    | "image/jpeg"
-    | "image/png"
-    | "image/webp"
-    | null = null;
-
+function detectAvatarImageType(
+  signature: Uint8Array,
+): AvatarImageType | null {
   /*
   |--------------------------------------------------------------------------
   | JPEG
@@ -346,8 +288,7 @@ export async function updateProfileAvatar({
     signature[1] === 0xd8 &&
     signature[2] === 0xff
   ) {
-    detectedType =
-      "image/jpeg";
+    return "image/jpeg";
   }
 
   /*
@@ -370,8 +311,7 @@ export async function updateProfileAvatar({
     signature[6] === 0x1a &&
     signature[7] === 0x0a
   ) {
-    detectedType =
-      "image/png";
+    return "image/png";
   }
 
   /*
@@ -384,8 +324,7 @@ export async function updateProfileAvatar({
   */
 
   if (
-    signature.length >=
-      12 &&
+    signature.length >= 12 &&
     signature[0] === 0x52 &&
     signature[1] === 0x49 &&
     signature[2] === 0x46 &&
@@ -395,25 +334,129 @@ export async function updateProfileAvatar({
     signature[10] === 0x42 &&
     signature[11] === 0x50
   ) {
-    detectedType =
-      "image/webp";
+    return "image/webp";
   }
 
-  if (!detectedType) {
+  return null;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Update profile avatar
+|--------------------------------------------------------------------------
+|
+| HEIC / HEIF:
+|
+| HEIC sebaiknya dikonversi ke JPEG di frontend sebelum
+| dikirim ke endpoint ini.
+|
+| Dengan begitu avatar yang tersimpan selalu kompatibel
+| dengan Chrome, Safari, Firefox dan mobile browser.
+|--------------------------------------------------------------------------
+*/
+
+export async function updateProfileAvatar({
+  userId,
+  file,
+}: {
+  userId: string;
+  file: File;
+}) {
+  /*
+  |--------------------------------------------------------------------------
+  | Empty file
+  |--------------------------------------------------------------------------
+  */
+
+  if (file.size === 0) {
     throw new AppError(
-      "Invalid image file.",
+      "Image file is empty.",
       400,
     );
   }
 
   /*
   |--------------------------------------------------------------------------
-  | Browser MIME must match actual content
+  | Maximum size
+  |--------------------------------------------------------------------------
+  |
+  | HEIC -> JPEG bisa menghasilkan file lebih besar.
+  |
+  | 5 MB masih cukup aman untuk avatar.
+  |
+  */
+
+  const MAX_AVATAR_SIZE =
+    5 * 1024 * 1024;
+
+  if (
+    file.size >
+    MAX_AVATAR_SIZE
+  ) {
+    throw new AppError(
+      "Maximum profile photo size is 5 MB.",
+      400,
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Allowed MIME
+  |--------------------------------------------------------------------------
+  */
+
+  const allowedTypes =
+    new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ]);
+
+  if (
+    !allowedTypes.has(
+      file.type,
+    )
+  ) {
+    throw new AppError(
+      "Only JPG, PNG, WEBP, HEIC, and HEIF images are supported. HEIC/HEIF must be converted to JPEG before upload.",
+      400,
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Read image signature
+  |--------------------------------------------------------------------------
+  */
+
+  const signature =
+    new Uint8Array(
+      await file
+        .slice(0, 16)
+        .arrayBuffer(),
+    );
+
+  const detectedType =
+    detectAvatarImageType(
+      signature,
+    );
+
+  if (!detectedType) {
+    throw new AppError(
+      "Invalid or unsupported image file.",
+      400,
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | MIME must match actual file content
   |--------------------------------------------------------------------------
   */
 
   if (
-    detectedType !== file.type
+    detectedType !==
+    file.type
   ) {
     throw new AppError(
       "Image content does not match its file type.",
@@ -423,7 +466,7 @@ export async function updateProfileAvatar({
 
   /*
   |--------------------------------------------------------------------------
-  | Convert to Base64 Data URL
+  | Convert image to Base64
   |--------------------------------------------------------------------------
   */
 
@@ -445,7 +488,7 @@ export async function updateProfileAvatar({
 
   /*
   |--------------------------------------------------------------------------
-  | Save
+  | Save avatar
   |--------------------------------------------------------------------------
   */
 
