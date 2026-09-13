@@ -3,11 +3,15 @@
 import {
   Archive,
   Download,
+  Eye,
   FileArchive,
+  FileImage,
+  FileText,
   LoaderCircle,
   Plus,
   Trash2,
   UploadCloud,
+  X,
 } from "lucide-react";
 
 import {
@@ -82,6 +86,160 @@ function formatDate(
   );
 }
 
+function isImage(
+  file: StoredFile,
+) {
+  return (
+    file.contentType ===
+      "image/jpeg" ||
+    file.contentType ===
+      "image/png"
+  );
+}
+
+function isPdf(
+  file: StoredFile,
+) {
+  return (
+    file.contentType ===
+    "application/pdf"
+  );
+}
+
+function isZip(
+  file: StoredFile,
+) {
+  return (
+    file.contentType ===
+      "application/zip" ||
+    file.contentType ===
+      "application/x-zip-compressed"
+  );
+}
+
+function canPreview(
+  file: StoredFile,
+) {
+  return (
+    isImage(file) ||
+    isPdf(file)
+  );
+}
+
+function getFileTypeLabel(
+  file: StoredFile,
+) {
+  if (isPdf(file)) {
+    return "PDF";
+  }
+
+  if (
+    file.contentType ===
+    "image/png"
+  ) {
+    return "PNG";
+  }
+
+  if (
+    file.contentType ===
+    "image/jpeg"
+  ) {
+    return "JPG";
+  }
+
+  if (isZip(file)) {
+    return "ZIP";
+  }
+
+  return "FILE";
+}
+
+function FileIcon({
+  file,
+  large = false,
+}: {
+  file: StoredFile;
+  large?: boolean;
+}) {
+  const iconClass =
+    large
+      ? "h-5 w-5"
+      : "h-4 w-4";
+
+  if (isPdf(file)) {
+    return (
+      <div
+        className={`
+          grid
+          shrink-0
+          place-items-center
+          rounded-xl
+          bg-red-50
+          text-red-500
+
+          ${
+            large
+              ? "h-10 w-10"
+              : "h-9 w-9"
+          }
+        `}
+      >
+        <FileText
+          className={iconClass}
+        />
+      </div>
+    );
+  }
+
+  if (isImage(file)) {
+    return (
+      <div
+        className={`
+          grid
+          shrink-0
+          place-items-center
+          rounded-xl
+          bg-blue-50
+          text-blue-500
+
+          ${
+            large
+              ? "h-10 w-10"
+              : "h-9 w-9"
+          }
+        `}
+      >
+        <FileImage
+          className={iconClass}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`
+        grid
+        shrink-0
+        place-items-center
+        rounded-xl
+        bg-[var(--primary-soft)]
+        text-[var(--primary)]
+
+        ${
+          large
+            ? "h-10 w-10"
+            : "h-9 w-9"
+        }
+      `}
+    >
+      <FileArchive
+        className={iconClass}
+      />
+    </div>
+  );
+}
+
 export default function FilesClient({
   initialFiles,
 }: Props) {
@@ -101,7 +259,21 @@ export default function FilesClient({
       initialFiles,
     );
 
-  const [deleteTarget, setDeleteTarget] = useState<StoredFile | null>(null);
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] =
+    useState<StoredFile | null>(
+      null,
+    );
+
+  const [
+    previewTarget,
+    setPreviewTarget,
+  ] =
+    useState<StoredFile | null>(
+      null,
+    );
 
   const [
     uploading,
@@ -128,13 +300,28 @@ export default function FilesClient({
   async function handleFile(
     file: File,
   ) {
-    if (
-      !file.name
+    const extension =
+      file.name
         .toLowerCase()
-        .endsWith(".zip")
+        .slice(
+          file.name
+            .lastIndexOf("."),
+        );
+
+    const allowed =
+      new Set([
+        ".zip",
+        ".pdf",
+        ".jpg",
+        ".jpeg",
+        ".png",
+      ]);
+
+    if (
+      !allowed.has(extension)
     ) {
       setError(
-        "Only ZIP files are allowed.",
+        "Only ZIP, PDF, JPG, JPEG, and PNG files are allowed.",
       );
 
       return;
@@ -213,64 +400,79 @@ export default function FilesClient({
   }
 
   async function deleteFile(
-  id: string,
-) {
-  try {
-    setDeletingId(id);
-    setError(null);
+    id: string,
+  ) {
+    try {
+      setDeletingId(id);
+      setError(null);
 
-    const response =
-      await fetch(
-        `/api/files/${id}`,
-        {
-          method: "DELETE",
-        },
+      const response =
+        await fetch(
+          `/api/files/${id}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            `Delete failed (${response.status}).`,
+        );
+      }
+
+      setFiles(
+        (current) =>
+          current.filter(
+            (file) =>
+              file.id !== id,
+          ),
       );
 
-    const data =
-      await response.json();
+      setDeleteTarget(
+        null,
+      );
 
-    if (!response.ok) {
-      throw new Error(
-        data?.error ||
-          `Delete failed (${response.status}).`,
+      if (
+        previewTarget?.id ===
+        id
+      ) {
+        setPreviewTarget(
+          null,
+        );
+      }
+
+      router.refresh();
+    } catch (error) {
+      console.error(
+        "DELETE FILE ERROR:",
+        error,
+      );
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete file.",
+      );
+    } finally {
+      setDeletingId(
+        null,
       );
     }
-
-    setFiles(
-      (current) =>
-        current.filter(
-          (file) =>
-            file.id !== id,
-        ),
-    );
-
-    setDeleteTarget(null);
-
-    router.refresh();
-  } catch (error) {
-    console.error(
-      "DELETE FILE ERROR:",
-      error,
-    );
-
-    setError(
-      error instanceof Error
-        ? error.message
-        : "Unable to delete file.",
-    );
-  } finally {
-    setDeletingId(null);
   }
-}
 
   return (
     <div className="mx-auto w-full max-w-6xl">
+      {/* HEADER */}
       <div
         className="
           flex
           flex-col
           gap-4
+
           sm:flex-row
           sm:items-center
           sm:justify-between
@@ -294,55 +496,72 @@ export default function FilesClient({
               text-[var(--text-muted)]
             "
           >
-            Private ZIP storage
+            Private ZIP, PDF,
+            JPG and PNG storage
             visible only to your
             account.
           </p>
         </div>
 
         <button
-  type="button"
-  disabled={uploading}
-  onClick={() =>
-    inputRef.current?.click()
-  }
-  className="
-    inline-flex
-    h-10
-    items-center
-    justify-center
-    gap-2
-    rounded-xl
-    border
-    border-[var(--border)]
-    bg-white
-    px-4
-    text-sm
-    font-medium
-    text-[var(--text)]
-    shadow-sm
-    transition-all
-    hover:border-[var(--primary)
-    hover:shadow-md
-    disabled:cursor-not-allowed
-    disabled:opacity-50
-  "
->
-  {uploading ? (
-    <LoaderCircle className="h-4 w-4 animate-spin" />
-  ) : (
-    <Plus className="h-4 w-4" />
-  )}
+          type="button"
+          disabled={
+            uploading
+          }
+          onClick={() =>
+            inputRef.current?.click()
+          }
+          className="
+            inline-flex
+            h-10
+            items-center
+            justify-center
+            gap-2
+            rounded-xl
+            border
+            border-[var(--border)]
+            bg-white
+            px-4
+            text-sm
+            font-medium
+            text-[var(--text)]
+            shadow-sm
+            transition-all
 
-  {uploading
-    ? "Uploading..."
-    : "Upload ZIP"}
-</button>
+            hover:border-[var(--primary)]
+            hover:bg-[var(--primary)]
+            hover:text-white
+            hover:shadow-md
+
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+        >
+          {uploading ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
+
+          {uploading
+            ? "Uploading..."
+            : "Upload file"}
+        </button>
 
         <input
           ref={inputRef}
           type="file"
-          accept=".zip,application/zip"
+          accept="
+            .zip,
+            .pdf,
+            .jpg,
+            .jpeg,
+            .png,
+            application/zip,
+            application/pdf,
+            image/jpeg,
+            image/png
+          "
           hidden
           onChange={(
             event,
@@ -360,7 +579,8 @@ export default function FilesClient({
         />
       </div>
 
-      {error && (
+      {/* ERROR */}
+      {error ? (
         <div
           className="
             mt-5
@@ -376,8 +596,9 @@ export default function FilesClient({
         >
           {error}
         </div>
-      )}
+      ) : null}
 
+      {/* EMPTY */}
       {files.length ===
       0 ? (
         <button
@@ -388,7 +609,7 @@ export default function FilesClient({
           className="
             mt-8
             flex
-            min-h-[320px]
+            min-h-[300px]
             w-full
             flex-col
             items-center
@@ -419,7 +640,8 @@ export default function FilesClient({
           </div>
 
           <h2 className="mt-4 font-semibold">
-            Upload your first ZIP
+            Upload your first
+            file
           </h2>
 
           <p
@@ -427,16 +649,28 @@ export default function FilesClient({
               mt-1
               max-w-sm
               text-sm
+              leading-6
               text-[var(--text-muted)]
             "
           >
-            Store project source
-            files privately and
-            download them whenever
-            you need.
+            Store ZIP archives,
+            PDF documents and
+            images privately.
+          </p>
+
+          <p
+            className="
+              mt-2
+              text-xs
+              text-[var(--text-muted)]
+            "
+          >
+            ZIP, PDF, JPG,
+            JPEG or PNG
           </p>
         </button>
       ) : (
+        /* FILE LIST */
         <div
           className="
             mt-7
@@ -451,8 +685,10 @@ export default function FilesClient({
             className="
               border-b
               border-[var(--border)]
-              px-5
+              px-4
               py-4
+
+              sm:px-5
             "
           >
             <div
@@ -466,7 +702,7 @@ export default function FilesClient({
             >
               <Archive className="h-4 w-4 text-[var(--primary)]" />
 
-              Private archives
+              Private files
 
               <span
                 className="
@@ -485,32 +721,71 @@ export default function FilesClient({
             {files.map(
               (file) => (
                 <div
-                  key={file.id}
+                  key={
+                    file.id
+                  }
                   className="
                     flex
+                    min-w-0
                     items-center
-                    gap-4
-                    px-5
-                    py-4
+                    gap-3
+                    px-3
+                    py-3.5
                     transition
                     hover:bg-[var(--surface-soft)]
+
+                    sm:gap-4
+                    sm:px-5
+                    sm:py-4
                   "
                 >
-                  <div
-                    className="
-                      grid
-                      h-10
-                      w-10
-                      shrink-0
-                      place-items-center
-                      rounded-xl
-                      bg-[var(--primary-soft)]
-                      text-[var(--primary)]
-                    "
-                  >
-                    <FileArchive className="h-5 w-5" />
-                  </div>
+                  {/* THUMBNAIL */}
+                  {isImage(
+                    file,
+                  ) ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreviewTarget(
+                          file,
+                        )
+                      }
+                      className="
+                        h-11
+                        w-11
+                        shrink-0
+                        overflow-hidden
+                        rounded-xl
+                        border
+                        border-[var(--border)]
+                        bg-[var(--surface-soft)]
 
+                        sm:h-12
+                        sm:w-12
+                      "
+                    >
+                      <img
+                        src={`/api/files/${file.id}/preview`}
+                        alt={
+                          file.originalName
+                        }
+                        className="
+                          h-full
+                          w-full
+                          object-cover
+                        "
+                      />
+                    </button>
+                  ) : (
+                    <FileIcon
+                      file={
+                        file
+                      }
+                      large
+                    />
+                  )}
+
+                  {/* INFO */}
                   <div className="min-w-0 flex-1">
                     <div
                       className="
@@ -528,22 +803,41 @@ export default function FilesClient({
                       className="
                         mt-1
                         flex
+                        min-w-0
                         flex-wrap
                         items-center
-                        gap-2
+                        gap-x-2
+                        gap-y-1
                         text-xs
                         text-[var(--text-muted)]
                       "
                     >
+                      <span
+                        className="
+                          rounded-md
+                          bg-[var(--surface-soft)]
+                          px-1.5
+                          py-0.5
+                          text-[10px]
+                          font-medium
+                        "
+                      >
+                        {getFileTypeLabel(
+                          file,
+                        )}
+                      </span>
+
                       <span>
                         {formatBytes(
                           file.size,
                         )}
                       </span>
 
-                      <span>·</span>
-
                       <span>
+                        ·
+                      </span>
+
+                      <span className="truncate">
                         {formatDate(
                           file.createdAt,
                         )}
@@ -551,22 +845,72 @@ export default function FilesClient({
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  {/* ACTIONS */}
+                  <div
+                    className="
+                      flex
+                      shrink-0
+                      items-center
+                      gap-1
+
+                      sm:gap-2
+                    "
+                  >
+                    {canPreview(
+                      file,
+                    ) ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewTarget(
+                            file,
+                          )
+                        }
+                        className="
+                          inline-flex
+                          h-9
+                          w-9
+                          items-center
+                          justify-center
+                          rounded-lg
+                          border
+                          border-[var(--border)]
+                          transition
+                          hover:bg-[var(--surface-soft)]
+
+                          sm:w-auto
+                          sm:gap-2
+                          sm:px-3
+                        "
+                        title="Preview"
+                      >
+                        <Eye className="h-4 w-4" />
+
+                        <span className="hidden sm:inline">
+                          Preview
+                        </span>
+                      </button>
+                    ) : null}
+
                     <a
                       href={`/api/files/${file.id}/download`}
                       className="
                         inline-flex
                         h-9
+                        w-9
                         items-center
-                        gap-2
+                        justify-center
                         rounded-lg
                         border
                         border-[var(--border)]
-                        px-3
-                        text-sm
                         transition
                         hover:bg-[var(--surface-soft)]
+
+                        sm:w-auto
+                        sm:gap-2
+                        sm:px-3
                       "
+                      title="Download"
                     >
                       <Download className="h-4 w-4" />
 
@@ -581,9 +925,11 @@ export default function FilesClient({
                         deletingId ===
                         file.id
                       }
-                     onClick={() =>
-                        setDeleteTarget(file)
-                    }
+                      onClick={() =>
+                        setDeleteTarget(
+                          file,
+                        )
+                      }
                       className="
                         inline-flex
                         h-9
@@ -596,6 +942,7 @@ export default function FilesClient({
                         hover:bg-red-50
                         disabled:opacity-50
                       "
+                      title="Delete"
                     >
                       {deletingId ===
                       file.id ? (
@@ -611,204 +958,396 @@ export default function FilesClient({
           </div>
         </div>
       )}
-      {deleteTarget && (
-  <div
-    className="
-      fixed
-      inset-0
-      z-50
-      flex
-      items-center
-      justify-center
-      bg-black/40
-      px-4
-      backdrop-blur-sm
-    "
-    onClick={() => {
-      if (!deletingId) {
-        setDeleteTarget(null);
-      }
-    }}
-  >
-    <div
-      className="
-        w-full
-        max-w-md
-        overflow-hidden
-        rounded-2xl
-        border
-        border-[var(--border)]
-        bg-[var(--surface)]
-        shadow-2xl
-      "
-      onClick={(event) =>
-        event.stopPropagation()
-      }
-    >
-      <div className="p-6">
+
+      {/* PREVIEW MODAL */}
+      {previewTarget ? (
         <div
           className="
-            grid
-            h-12
-            w-12
-            place-items-center
-            rounded-xl
-            bg-red-50
-            text-red-500
-          "
-        >
-          <Trash2 className="h-5 w-5" />
-        </div>
+            fixed
+            inset-0
+            z-[100]
+            flex
+            items-center
+            justify-center
+            bg-black/60
+            p-3
+            backdrop-blur-sm
 
-        <h2
-          className="
-            mt-5
-            text-lg
-            font-semibold
-            tracking-[-0.02em]
+            sm:p-6
           "
+          onClick={() =>
+            setPreviewTarget(
+              null,
+            )
+          }
         >
-          Delete ZIP file?
-        </h2>
-
-        <p
-          className="
-            mt-2
-            text-sm
-            leading-6
-            text-[var(--text-muted)]
-          "
-        >
-          Are you sure you want to delete
-          <span className="font-medium text-[var(--text)]">
-            {" "}
-            {deleteTarget.originalName}
-          </span>
-          ? This action cannot be undone.
-        </p>
-
-        <div
-          className="
-            mt-6
-            rounded-xl
-            border
-            border-[var(--border)]
-            bg-[var(--surface-soft)]
-            p-4
-          "
-        >
-          <div className="flex items-center gap-3">
+          <div
+            className="
+              flex
+              max-h-[90dvh]
+              w-full
+              max-w-5xl
+              flex-col
+              overflow-hidden
+              rounded-2xl
+              border
+              border-[var(--border)]
+              bg-[var(--surface)]
+              shadow-2xl
+            "
+            onClick={(
+              event,
+            ) =>
+              event.stopPropagation()
+            }
+          >
+            {/* PREVIEW HEADER */}
             <div
               className="
-                grid
-                h-10
-                w-10
+                flex
+                h-14
                 shrink-0
-                place-items-center
-                rounded-lg
-                bg-[var(--primary-soft)]
-                text-[var(--primary)]
+                items-center
+                gap-3
+                border-b
+                border-[var(--border)]
+                px-4
               "
             >
-              <FileArchive className="h-5 w-5" />
+              <FileIcon
+                file={
+                  previewTarget
+                }
+              />
+
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold">
+                  {
+                    previewTarget.originalName
+                  }
+                </div>
+
+                <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                  {getFileTypeLabel(
+                    previewTarget,
+                  )}{" "}
+                  ·{" "}
+                  {formatBytes(
+                    previewTarget.size,
+                  )}
+                </div>
+              </div>
+
+              <a
+                href={`/api/files/${previewTarget.id}/download`}
+                className="
+                  grid
+                  h-9
+                  w-9
+                  shrink-0
+                  place-items-center
+                  rounded-xl
+                  transition
+                  hover:bg-[var(--surface-soft)]
+                "
+                title="Download"
+              >
+                <Download className="h-4 w-4" />
+              </a>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPreviewTarget(
+                    null,
+                  )
+                }
+                className="
+                  grid
+                  h-9
+                  w-9
+                  shrink-0
+                  place-items-center
+                  rounded-xl
+                  transition
+                  hover:bg-[var(--surface-soft)]
+                "
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">
-                {deleteTarget.originalName}
-              </p>
+            {/* PREVIEW CONTENT */}
+            <div
+              className="
+                min-h-0
+                flex-1
+                overflow-auto
+                bg-[var(--surface-soft)]
+                p-3
 
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {formatBytes(
-                  deleteTarget.size,
-                )}
-              </p>
+                sm:p-4
+              "
+            >
+              {isImage(
+                previewTarget,
+              ) ? (
+                <div
+                  className="
+                    flex
+                    min-h-full
+                    items-center
+                    justify-center
+                  "
+                >
+                  <img
+                    src={`/api/files/${previewTarget.id}/preview`}
+                    alt={
+                      previewTarget.originalName
+                    }
+                    className="
+                      max-h-[75dvh]
+                      max-w-full
+                      rounded-xl
+                      object-contain
+                    "
+                  />
+                </div>
+              ) : isPdf(
+                  previewTarget,
+                ) ? (
+                <iframe
+                  src={`/api/files/${previewTarget.id}/preview`}
+                  title={
+                    previewTarget.originalName
+                  }
+                  className="
+                    h-[72dvh]
+                    w-full
+                    rounded-xl
+                    bg-white
+                  "
+                />
+              ) : null}
             </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
-      <div
-        className="
-          flex
-          justify-end
-          gap-2
-          border-t
-          border-[var(--border)]
-          bg-[var(--surface-soft)]
-          px-6
-          py-4
-        "
-      >
-        <button
-          type="button"
-          disabled={
-            deletingId !== null
-          }
-          onClick={() =>
-            setDeleteTarget(null)
-          }
+      {/* DELETE MODAL */}
+      {deleteTarget ? (
+        <div
           className="
-            h-9
-            rounded-lg
-            border
-            border-[var(--border)]
-            bg-[var(--surface)]
-            px-4
-            text-sm
-            font-medium
-            transition
-            hover:bg-[var(--surface-hover)]
-            disabled:opacity-50
-          "
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          disabled={
-            deletingId !== null
-          }
-          onClick={() =>
-            deleteFile(
-              deleteTarget.id,
-            )
-          }
-          className="
-            inline-flex
-            h-9
+            fixed
+            inset-0
+            z-[110]
+            flex
             items-center
-            gap-2
-            rounded-lg
-            bg-red-500
+            justify-center
+            bg-black/40
             px-4
-            text-sm
-            font-medium
-            text-white
-            transition
-            hover:bg-red-600
-            disabled:cursor-not-allowed
-            disabled:opacity-50
+            backdrop-blur-sm
           "
+          onClick={() => {
+            if (
+              !deletingId
+            ) {
+              setDeleteTarget(
+                null,
+              );
+            }
+          }}
         >
-          {deletingId ===
-          deleteTarget.id ? (
-            <>
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              Deleting...
-            </>
-          ) : (
-            <>
-              <Trash2 className="h-4 w-4" />
-              Delete file
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+          <div
+            className="
+              w-full
+              max-w-md
+              overflow-hidden
+              rounded-2xl
+              border
+              border-[var(--border)]
+              bg-[var(--surface)]
+              shadow-2xl
+            "
+            onClick={(
+              event,
+            ) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="p-6">
+              <div
+                className="
+                  grid
+                  h-12
+                  w-12
+                  place-items-center
+                  rounded-xl
+                  bg-red-50
+                  text-red-500
+                "
+              >
+                <Trash2 className="h-5 w-5" />
+              </div>
+
+              <h2
+                className="
+                  mt-5
+                  text-lg
+                  font-semibold
+                  tracking-[-0.02em]
+                "
+              >
+                Delete file?
+              </h2>
+
+              <p
+                className="
+                  mt-2
+                  text-sm
+                  leading-6
+                  text-[var(--text-muted)]
+                "
+              >
+                Are you sure
+                you want to
+                delete
+                <span className="font-medium text-[var(--text)]">
+                  {" "}
+                  {
+                    deleteTarget.originalName
+                  }
+                </span>
+                ? This action
+                cannot be
+                undone.
+              </p>
+
+              <div
+                className="
+                  mt-6
+                  rounded-xl
+                  border
+                  border-[var(--border)]
+                  bg-[var(--surface-soft)]
+                  p-4
+                "
+              >
+                <div className="flex items-center gap-3">
+                  <FileIcon
+                    file={
+                      deleteTarget
+                    }
+                    large
+                  />
+
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {
+                        deleteTarget.originalName
+                      }
+                    </p>
+
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      {getFileTypeLabel(
+                        deleteTarget,
+                      )}{" "}
+                      ·{" "}
+                      {formatBytes(
+                        deleteTarget.size,
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="
+                flex
+                justify-end
+                gap-2
+                border-t
+                border-[var(--border)]
+                bg-[var(--surface-soft)]
+                px-6
+                py-4
+              "
+            >
+              <button
+                type="button"
+                disabled={
+                  deletingId !==
+                  null
+                }
+                onClick={() =>
+                  setDeleteTarget(
+                    null,
+                  )
+                }
+                className="
+                  h-9
+                  rounded-lg
+                  border
+                  border-[var(--border)]
+                  bg-[var(--surface)]
+                  px-4
+                  text-sm
+                  font-medium
+                  transition
+                  hover:bg-[var(--surface-hover)]
+                  disabled:opacity-50
+                "
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  deletingId !==
+                  null
+                }
+                onClick={() =>
+                  deleteFile(
+                    deleteTarget.id,
+                  )
+                }
+                className="
+                  inline-flex
+                  h-9
+                  items-center
+                  gap-2
+                  rounded-lg
+                  bg-red-500
+                  px-4
+                  text-sm
+                  font-medium
+                  text-white
+                  transition
+                  hover:bg-red-600
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              >
+                {deletingId ===
+                deleteTarget.id ? (
+                  <>
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Delete file
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

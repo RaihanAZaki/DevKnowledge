@@ -5,17 +5,21 @@ import {
   BookOpenText,
   Braces,
   CalendarDays,
+  Camera,
   Edit3,
+  LoaderCircle,
   Mail,
   MessageSquareText,
   Save,
   ShieldCheck,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
 import {
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -72,6 +76,9 @@ export default function ProfileClient({
   initialProfile,
   initialReputation,
 }: ProfileClientProps) {
+  const avatarInputRef =
+    useRef<HTMLInputElement>(null);
+
   const [profile, setProfile] =
     useState<Profile | null>(
       initialProfile,
@@ -91,6 +98,18 @@ export default function ProfileClient({
   const [editing, setEditing] =
     useState(false);
 
+  const [
+    uploadingAvatar,
+    setUploadingAvatar,
+  ] =
+    useState(false);
+
+  const [
+    removingAvatar,
+    setRemovingAvatar,
+  ] =
+    useState(false);
+
   const [name, setName] =
     useState(initialProfile.name);
 
@@ -99,20 +118,15 @@ export default function ProfileClient({
       initialProfile.bio ?? "",
     );
 
-  const [
-    avatarUrl,
-    setAvatarUrl,
-  ] = useState(
-    initialProfile.avatarUrl ?? "",
-  );
-
   const loadProfile =
     useCallback(async () => {
       try {
         setLoading(true);
 
         const response =
-          await fetch("/api/profile");
+          await fetch("/api/profile", {
+            cache: "no-store",
+          });
 
         if (
           response.status === 401
@@ -126,11 +140,6 @@ export default function ProfileClient({
           await response.json();
 
         if (!response.ok) {
-          console.error(
-            "PROFILE API ERROR:",
-            data,
-          );
-
           throw new Error(
             data?.error ||
               "Failed to load profile.",
@@ -138,11 +147,6 @@ export default function ProfileClient({
         }
 
         if (!data.profile) {
-          console.error(
-            "Invalid profile response:",
-            data,
-          );
-
           throw new Error(
             "Profile data was not returned by API.",
           );
@@ -159,18 +163,11 @@ export default function ProfileClient({
         setBio(
           data.profile.bio ?? "",
         );
-
-        setAvatarUrl(
-          data.profile.avatarUrl ??
-            "",
-        );
       } catch (error) {
         console.error(
           "Load profile error:",
           error,
         );
-
-        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -194,15 +191,14 @@ export default function ProfileClient({
             body: JSON.stringify({
               name,
               bio,
-              avatarUrl,
             }),
           },
         );
 
-      if (!response.ok) {
-        const data =
-          await response.json();
+      const data =
+        await response.json();
 
+      if (!response.ok) {
         throw new Error(
           data?.error ||
             "Failed to update profile.",
@@ -217,8 +213,128 @@ export default function ProfileClient({
         "Update profile error:",
         error,
       );
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to update profile.",
+      );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadAvatar(
+    file: File,
+  ) {
+    try {
+      setUploadingAvatar(true);
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "file",
+        file,
+      );
+
+      const response =
+        await fetch(
+          "/api/profile/avatar",
+          {
+            method: "POST",
+            body: formData,
+          },
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Unable to update profile photo.",
+        );
+      }
+
+      setProfile(
+        (current) =>
+          current
+            ? {
+                ...current,
+                avatarUrl:
+                  data.profile
+                    .avatarUrl,
+              }
+            : current,
+      );
+    } catch (error) {
+      console.error(
+        "UPLOAD PROFILE AVATAR:",
+        error,
+      );
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to update profile photo.",
+      );
+    } finally {
+      setUploadingAvatar(false);
+
+      if (
+        avatarInputRef.current
+      ) {
+        avatarInputRef.current.value =
+          "";
+      }
+    }
+  }
+
+  async function removeAvatar() {
+    try {
+      setRemovingAvatar(true);
+
+      const response =
+        await fetch(
+          "/api/profile/avatar",
+          {
+            method: "DELETE",
+          },
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Unable to remove profile photo.",
+        );
+      }
+
+      setProfile(
+        (current) =>
+          current
+            ? {
+                ...current,
+                avatarUrl: null,
+              }
+            : current,
+      );
+    } catch (error) {
+      console.error(
+        "REMOVE PROFILE AVATAR:",
+        error,
+      );
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to remove profile photo.",
+      );
+    } finally {
+      setRemovingAvatar(false);
     }
   }
 
@@ -233,21 +349,24 @@ export default function ProfileClient({
           ...profile.snippets.map(
             (item) => ({
               ...item,
-              type: "snippet" as const,
+              type:
+                "snippet" as const,
             }),
           ),
 
           ...profile.documents.map(
             (item) => ({
               ...item,
-              type: "document" as const,
+              type:
+                "document" as const,
             }),
           ),
 
           ...profile.threads.map(
             (item) => ({
               ...item,
-              type: "forum" as const,
+              type:
+                "forum" as const,
             }),
           ),
         ]
@@ -283,6 +402,7 @@ export default function ProfileClient({
   const initials =
     profile.name
       .split(" ")
+      .filter(Boolean)
       .map(
         (item) =>
           item[0],
@@ -303,59 +423,121 @@ export default function ProfileClient({
         {/* PROFILE SIDEBAR */}
         <aside>
           <div className="lg:sticky lg:top-24">
-            {/* PROFILE HEADER */}
             <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-              {profile.avatarUrl ? (
-                <img
-                  src={
-                    profile.avatarUrl
+              {/* AVATAR */}
+              <div className="relative">
+                {profile.avatarUrl ? (
+                  <img
+                    src={
+                      profile.avatarUrl
+                    }
+                    alt={profile.name}
+                    className="
+                      h-32
+                      w-32
+                      rounded-full
+                      border
+                      border-[var(--border)]
+                      object-cover
+
+                      sm:h-36
+                      sm:w-36
+
+                      lg:h-[280px]
+                      lg:w-[280px]
+                    "
+                  />
+                ) : (
+                  <div
+                    className="
+                      grid
+                      h-32
+                      w-32
+                      place-items-center
+                      rounded-full
+                      border
+                      border-[var(--border)]
+                      bg-[var(--surface-soft)]
+                      text-3xl
+                      font-semibold
+                      tracking-[-0.05em]
+
+                      sm:h-36
+                      sm:w-36
+
+                      lg:h-[280px]
+                      lg:w-[280px]
+                      lg:text-5xl
+                    "
+                  >
+                    {initials}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  disabled={
+                    uploadingAvatar
                   }
-                  alt={profile.name}
+                  onClick={() =>
+                    avatarInputRef.current?.click()
+                  }
                   className="
-                    h-32
-                    w-32
-                    rounded-full
-                    border
-                    border-[var(--border)]
-                    object-cover
-
-                    sm:h-36
-                    sm:w-36
-
-                    lg:h-auto
-                    lg:w-full
-                    lg:max-w-[280px]
-                    lg:aspect-square
-                  "
-                />
-              ) : (
-                <div
-                  className="
+                    absolute
+                    bottom-1
+                    right-1
                     grid
-                    h-32
-                    w-32
+                    h-10
+                    w-10
                     place-items-center
                     rounded-full
                     border
                     border-[var(--border)]
-                    bg-[var(--surface-soft)]
-                    text-3xl
-                    font-semibold
-                    tracking-[-0.05em]
+                    bg-[var(--surface)]
+                    shadow-md
+                    transition
 
-                    sm:h-36
-                    sm:w-36
+                    hover:bg-[var(--primary)]
+                    hover:text-white
 
-                    lg:h-auto
-                    lg:w-full
-                    lg:max-w-[280px]
-                    lg:aspect-square
-                    lg:text-5xl
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
+
+                    lg:bottom-3
+                    lg:right-3
                   "
+                  aria-label="Change profile photo"
+                  title="Change profile photo"
                 >
-                  {initials}
-                </div>
-              )}
+                  {uploadingAvatar ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </button>
+
+                <input
+                  ref={
+                    avatarInputRef
+                  }
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                  hidden
+                  onChange={(
+                    event,
+                  ) => {
+                    const file =
+                      event.target
+                        .files?.[0];
+
+                    if (file) {
+                      void uploadAvatar(
+                        file,
+                      );
+                    }
+                  }}
+                />
+              </div>
 
               <h1 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">
                 {profile.name}
@@ -418,6 +600,46 @@ export default function ProfileClient({
                 <Edit3 className="h-4 w-4" />
                 Edit profile
               </button>
+
+              {profile.avatarUrl ? (
+                <button
+                  type="button"
+                  disabled={
+                    removingAvatar
+                  }
+                  onClick={() =>
+                    void removeAvatar()
+                  }
+                  className="
+                    mt-2
+                    flex
+                    h-9
+                    w-full
+                    max-w-sm
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-xl
+                    text-xs
+                    font-medium
+                    text-red-500
+                    transition
+                    hover:bg-red-50
+
+                    disabled:opacity-50
+
+                    lg:max-w-none
+                  "
+                >
+                  {removingAvatar ? (
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+
+                  Remove photo
+                </button>
+              ) : null}
             </div>
 
             {/* REPUTATION */}
@@ -483,18 +705,18 @@ export default function ProfileClient({
             {/* BADGES */}
             <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
               {reputation.solved >
-                0 && (
+              0 ? (
                 <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
                   🏆 Problem Solver
                 </span>
-              )}
+              ) : null}
 
               {reputation.score >=
-                100 && (
+              100 ? (
                 <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
                   🔥 Top Contributor
                 </span>
-              )}
+              ) : null}
             </div>
 
             {/* INFO */}
@@ -531,7 +753,6 @@ export default function ProfileClient({
 
         {/* PROFILE CONTENT */}
         <main className="min-w-0">
-          {/* OVERVIEW TAB */}
           <div className="border-b border-[var(--border)]">
             <div className="inline-flex items-center gap-2 border-b-2 border-[var(--text)] px-4 pb-3 text-sm font-medium">
               <UserRound className="h-4 w-4" />
@@ -539,7 +760,6 @@ export default function ProfileClient({
             </div>
           </div>
 
-          {/* CONTRIBUTION STATS */}
           <section className="mt-6">
             <div className="mb-3 text-sm font-semibold">
               DevKnowledge contributions
@@ -582,7 +802,6 @@ export default function ProfileClient({
             </div>
           </section>
 
-          {/* CONTRIBUTION OVERVIEW */}
           <section className="mt-8">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold">
@@ -594,7 +813,6 @@ export default function ProfileClient({
               </span>
             </div>
 
-            {/* MOBILE */}
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:hidden">
               <div className="grid grid-cols-7 gap-1.5">
                 {Array.from({
@@ -629,7 +847,6 @@ export default function ProfileClient({
               </div>
             </div>
 
-            {/* DESKTOP */}
             <div className="hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:block">
               <div className="grid grid-cols-14 gap-1 lg:grid-cols-20">
                 {Array.from({
@@ -671,7 +888,6 @@ export default function ProfileClient({
             </p>
           </section>
 
-          {/* RECENT CONTRIBUTIONS */}
           <section className="mt-8">
             <h2 className="mb-3 text-sm font-semibold">
               Recent contributions
@@ -700,9 +916,9 @@ export default function ProfileClient({
         </main>
       </div>
 
-      {/* EDIT PROFILE MODAL */}
+      {/* EDIT PROFILE */}
       {editing ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/40 px-4 backdrop-blur-sm">
           <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
               <div>
@@ -722,7 +938,6 @@ export default function ProfileClient({
                   setEditing(false)
                 }
                 className="grid h-9 w-9 place-items-center rounded-lg hover:bg-[var(--surface-hover)]"
-                aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -768,28 +983,6 @@ export default function ProfileClient({
                   className="field w-full resize-none px-3 py-2 text-sm"
                 />
               </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium">
-                  Avatar URL
-                </label>
-
-                <input
-                  value={
-                    avatarUrl
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setAvatarUrl(
-                      event.target
-                        .value,
-                    )
-                  }
-                  placeholder="https://..."
-                  className="field h-10 w-full px-3 text-sm"
-                />
-              </div>
             </div>
 
             <div className="flex justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
@@ -815,7 +1008,11 @@ export default function ProfileClient({
                 }
                 className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--text)] px-4 text-sm font-medium text-[var(--background)] disabled:opacity-50"
               >
-                <Save className="h-4 w-4" />
+                {saving ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
 
                 {saving
                   ? "Saving..."
@@ -853,7 +1050,6 @@ function StatCard({
         transition
         hover:border-[var(--border-strong)]
         hover:shadow-sm
-
         sm:p-4
       "
     >
