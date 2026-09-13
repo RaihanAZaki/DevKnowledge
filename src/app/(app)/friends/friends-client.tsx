@@ -42,7 +42,15 @@ type Outgoing = {
   addressee: User;
 };
 
-export default function FriendsClient({ initialData }: { initialData: { friends: Friend[]; incoming: Incoming[]; outgoing: Outgoing[] } }) {
+export default function FriendsClient({
+  initialData,
+}: {
+  initialData: {
+    friends: Friend[];
+    incoming: Incoming[];
+    outgoing: Outgoing[];
+  };
+}) {
   const [friends, setFriends] =
     useState<Friend[]>(initialData.friends);
 
@@ -75,7 +83,7 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
 
         if (!response.ok) {
           throw new Error(
-            "Failed to load friends."
+            "Failed to load friends.",
           );
         }
 
@@ -83,15 +91,15 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
           await response.json();
 
         setFriends(
-          data.friends ?? []
+          data.friends ?? [],
         );
 
         setIncoming(
-          data.incoming ?? []
+          data.incoming ?? [],
         );
 
         setOutgoing(
-          data.outgoing ?? []
+          data.outgoing ?? [],
         );
       } catch (error) {
         console.error(error);
@@ -132,8 +140,8 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
           const response =
             await fetch(
               `/api/users/search?q=${encodeURIComponent(
-                query.trim()
-              )}`
+                query.trim(),
+              )}`,
             );
 
           if (!response.ok) {
@@ -144,10 +152,10 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
             await response.json();
 
           setResults(
-            data.users ?? []
+            data.users ?? [],
           );
         },
-        300
+        300,
       );
 
     return () => {
@@ -156,7 +164,7 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
   }, [query]);
 
   async function addFriend(
-    userId: string
+    userId: string,
   ) {
     await fetch(
       "/api/friends/request",
@@ -171,40 +179,40 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
         body: JSON.stringify({
           userId,
         }),
-      }
+      },
     );
 
     setResults((current) =>
       current.filter(
         (item) =>
-          item.id !== userId
-      )
+          item.id !== userId,
+      ),
     );
 
     await loadFriends();
   }
 
   async function accept(
-    friendshipId: string
+    friendshipId: string,
   ) {
     await fetch(
       `/api/friends/${friendshipId}/accept`,
       {
         method: "POST",
-      }
+      },
     );
 
     await loadFriends();
   }
 
   async function reject(
-    friendshipId: string
+    friendshipId: string,
   ) {
     await fetch(
       `/api/friends/${friendshipId}/reject`,
       {
         method: "POST",
-      }
+      },
     );
 
     await loadFriends();
@@ -217,51 +225,82 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto w-full max-w-5xl space-y-7 sm:space-y-8">
+      {/* HEADER */}
       <div>
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.15em] text-[var(--text-muted)]">
+        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--text-muted)] sm:text-xs">
           <Users className="h-4 w-4" />
           Community
         </div>
 
-        <h1 className="mt-2 text-2xl font-semibold">
+        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em]">
           Friends
         </h1>
 
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Connect with developers and
-          discover what your teammates
-          are sharing.
+        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
+          Connect with developers and discover what your teammates are sharing.
         </p>
       </div>
 
+      {/* SEARCH */}
       <section>
         <h2 className="mb-3 text-sm font-semibold">
           Find developers
         </h2>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+          <Search
+            className="
+              pointer-events-none
+              absolute
+              left-3
+              top-1/2
+              h-4
+              w-4
+              -translate-y-1/2
+              text-[var(--text-muted)]
+            "
+          />
 
           <input
             value={query}
             onChange={(event) =>
               setQuery(
-                event.target.value
+                event.target.value,
               )
             }
             placeholder="Search by name or email..."
-            className="field h-10 w-full pl-9 pr-3 text-sm"
+            className="
+              field
+              h-11
+              w-full
+              pl-9
+              pr-3
+              text-sm
+            "
           />
         </div>
 
+        {/* SEARCH RESULTS */}
         {results.length > 0 ? (
-          <div className="mt-3 overflow-hidden rounded-xl border border-[var(--border)]">
+          <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             {results.map(
               (user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0"
+                  className="
+                    flex
+                    min-w-0
+                    items-center
+                    gap-3
+                    border-b
+                    border-[var(--border)]
+                    px-3
+                    py-3
+                    last:border-b-0
+
+                    sm:px-4
+                  "
                 >
                   <Avatar user={user} />
 
@@ -273,41 +312,74 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
                       {user.name}
                     </div>
 
-                    <div className="text-xs text-[var(--text-muted)]">
+                    <div className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
                       {user.role}
                     </div>
                   </Link>
 
                   <button
+                    type="button"
                     onClick={() =>
                       addFriend(
-                        user.id
+                        user.id,
                       )
                     }
-                    className="inline-flex h-8 items-center gap-2 rounded-lg border border-[var(--border)] px-3 text-xs font-medium"
+                    className="
+                      inline-flex
+                      h-8
+                      shrink-0
+                      items-center
+                      gap-1.5
+                      rounded-lg
+                      border
+                      border-[var(--border)]
+                      px-2.5
+                      text-xs
+                      font-medium
+                      transition
+                      hover:bg-[var(--surface-soft)]
+
+                      sm:px-3
+                    "
                   >
                     <UserPlus className="h-3.5 w-3.5" />
-                    Add
+
+                    <span className="hidden xs:inline">
+                      Add
+                    </span>
                   </button>
                 </div>
-              )
+              ),
             )}
           </div>
         ) : null}
       </section>
 
+      {/* INCOMING REQUESTS */}
       {incoming.length > 0 ? (
         <section>
           <h2 className="mb-3 text-sm font-semibold">
             Friend requests
           </h2>
 
-          <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+          <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             {incoming.map(
               (item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0"
+                  className="
+                    flex
+                    min-w-0
+                    items-center
+                    gap-3
+                    border-b
+                    border-[var(--border)]
+                    px-3
+                    py-3
+                    last:border-b-0
+
+                    sm:px-4
+                  "
                 >
                   <Avatar
                     user={
@@ -327,7 +399,7 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
                       }
                     </div>
 
-                    <div className="text-xs text-[var(--text-muted)]">
+                    <div className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
                       {
                         item
                           .requester
@@ -336,47 +408,88 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
                     </div>
                   </Link>
 
-                  <button
-                    onClick={() =>
-                      accept(
-                        item.id
-                      )
-                    }
-                    className="rounded-lg bg-[var(--text)] p-2 text-[var(--background)]"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        accept(
+                          item.id,
+                        )
+                      }
+                      className="
+                        grid
+                        h-8
+                        w-8
+                        place-items-center
+                        rounded-lg
+                        bg-[var(--text)]
+                        text-[var(--background)]
+                        transition
+                        hover:opacity-90
+                      "
+                      aria-label="Accept friend request"
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
 
-                  <button
-                    onClick={() =>
-                      reject(
-                        item.id
-                      )
-                    }
-                    className="rounded-lg border border-[var(--border)] p-2"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        reject(
+                          item.id,
+                        )
+                      }
+                      className="
+                        grid
+                        h-8
+                        w-8
+                        place-items-center
+                        rounded-lg
+                        border
+                        border-[var(--border)]
+                        transition
+                        hover:bg-[var(--surface-soft)]
+                      "
+                      aria-label="Decline friend request"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-              )
+              ),
             )}
           </div>
         </section>
       ) : null}
 
+      {/* OUTGOING */}
       {outgoing.length > 0 ? (
         <section>
           <h2 className="mb-3 text-sm font-semibold">
             Sent requests
           </h2>
 
-          <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+          <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             {outgoing.map(
               (item) => (
                 <Link
                   key={item.id}
                   href={`/profile/${item.addressee.id}`}
-                  className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0 hover:bg-[var(--surface-soft)]"
+                  className="
+                    flex
+                    min-w-0
+                    items-center
+                    gap-3
+                    border-b
+                    border-[var(--border)]
+                    px-3
+                    py-3
+                    transition
+                    last:border-b-0
+                    hover:bg-[var(--surface-soft)]
+
+                    sm:px-4
+                  "
                 >
                   <Avatar
                     user={
@@ -393,31 +506,44 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
                       }
                     </div>
 
-                    <div className="text-xs text-[var(--text-muted)]">
-                      Waiting for
-                      approval
+                    <div className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                      Waiting for approval
                     </div>
                   </div>
 
-                  <Clock3 className="h-4 w-4 text-[var(--text-muted)]" />
+                  <Clock3 className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
                 </Link>
-              )
+              ),
             )}
           </div>
         </section>
       ) : null}
 
+      {/* FRIENDS */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold">
-          Your friends
-        </h2>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">
+            Your friends
+          </h2>
+
+          <span className="text-xs text-[var(--text-muted)]">
+            {friends.length}
+          </span>
+        </div>
 
         {friends.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[var(--border)] px-6 py-12 text-center text-sm text-[var(--text-muted)]">
+          <div className="rounded-2xl border border-dashed border-[var(--border)] px-6 py-10 text-center text-sm text-[var(--text-muted)]">
             No friends yet.
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div
+            className="
+              grid
+              gap-3
+
+              sm:grid-cols-2
+            "
+          >
             {friends.map(
               (friend) => (
                 <Link
@@ -425,29 +551,64 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
                     friend.friendshipId
                   }
                   href={`/profile/${friend.user.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition hover:shadow-sm"
+                  className="
+                    group
+                    flex
+                    min-w-0
+                    items-center
+                    gap-3
+                    rounded-2xl
+                    border
+                    border-[var(--border)]
+                    bg-[var(--surface)]
+                    p-3.5
+                    transition
+                    hover:-translate-y-0.5
+                    hover:shadow-sm
+
+                    sm:p-4
+                  "
                 >
                   <Avatar
                     user={
                       friend.user
                     }
+                    large
                   />
 
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="
+                        truncate
+                        text-sm
+                        font-semibold
+                        text-[var(--text)]
+                        transition
+                        group-hover:text-[var(--primary)]
+                      "
+                    >
                       {
                         friend
                           .user.name
                       }
                     </div>
 
-                    <div className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                    <p
+                      className="
+                        mt-1
+                        line-clamp-2
+                        break-words
+                        text-xs
+                        leading-5
+                        text-[var(--text-muted)]
+                      "
+                    >
                       {friend.user.bio ??
                         friend.user.role}
-                    </div>
+                    </p>
                   </div>
                 </Link>
-              )
+              ),
             )}
           </div>
         )}
@@ -458,21 +619,39 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
 
 function Avatar({
   user,
+  large = false,
 }: {
   user: User;
+  large?: boolean;
 }) {
+  const size = large
+    ? "h-12 w-12"
+    : "h-10 w-10";
+
   if (user.avatarUrl) {
     return (
       <img
         src={user.avatarUrl}
         alt={user.name}
-        className="h-10 w-10 shrink-0 rounded-full object-cover"
+        className={`${size} shrink-0 rounded-full object-cover`}
       />
     );
   }
 
   return (
-    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-soft)] text-xs font-semibold text-[var(--primary)]">
+    <div
+      className={`
+        grid
+        ${size}
+        shrink-0
+        place-items-center
+        rounded-full
+        bg-[var(--primary-soft)]
+        text-xs
+        font-semibold
+        text-[var(--primary)]
+      `}
+    >
       {initials(user.name)}
     </div>
   );

@@ -1780,12 +1780,14 @@ export default function ChatWidget() {
         <div
           className="
             fixed
-            bottom-24
-            right-4
+            bottom-[84px]
+            left-3
+            right-3
             z-50
             flex
-            h-[560px]
-            w-[380px]
+            h-[58dvh]
+            min-h-[360px]
+            max-h-[500px]
             flex-col
             overflow-hidden
             rounded-2xl
@@ -1793,7 +1795,13 @@ export default function ChatWidget() {
             border-[var(--border)]
             bg-[var(--surface)]
             shadow-2xl
+
+            sm:bottom-24
+            sm:left-auto
             sm:right-6
+            sm:h-[520px]
+            sm:w-[360px]
+            sm:max-h-[calc(100dvh-120px)]
           "
         >
           {/* LIST */}
@@ -2260,7 +2268,7 @@ export default function ChatWidget() {
             "group" &&
             selectedGroup && (
               <>
-                <div className="flex h-16 shrink-0 items-center gap-2 border-b border-[var(--border)] px-3">
+                <div className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--border)] px-2.5 sm:h-16 sm:px-3">
                   <button
                     type="button"
                     onClick={
@@ -2922,12 +2930,12 @@ export default function ChatWidget() {
         aria-label="Open messages"
         className="
           fixed
-          bottom-6
+          bottom-5
           right-4
           z-50
           grid
-          h-14
-          w-14
+          h-12
+          w-12
           place-items-center
           rounded-full
           bg-[var(--primary)]
@@ -2935,13 +2943,17 @@ export default function ChatWidget() {
           shadow-xl
           transition
           hover:scale-105
+
+          sm:bottom-6
           sm:right-6
+          sm:h-14
+          sm:w-14
         "
       >
         {open ? (
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4 sm:h-5 sm:w-5" />
         ) : (
-          <MessageCircle className="h-5 w-5" />
+          <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
         )}
 
         {!open &&
@@ -2987,7 +2999,7 @@ function WidgetHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--border)] px-4">
+    <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] px-3 sm:h-16 sm:px-4">
       <div>
         <div className="text-sm font-semibold">
           {title}
@@ -3079,7 +3091,7 @@ function ChatBody({
     React.ReactNode;
 }) {
   return (
-    <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--surface-soft)] p-4">
+    <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain bg-[var(--surface-soft)] p-3 sm:space-y-3 sm:p-4">
       {children}
     </div>
   );
@@ -3092,7 +3104,7 @@ function BottomAction({
     React.ReactNode;
 }) {
   return (
-    <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] p-3">
+    <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] p-2.5 sm:p-3">
       {children}
     </div>
   );
@@ -3181,7 +3193,7 @@ function Composer({
   }
 
   return (
-    <div className="relative shrink-0 border-t border-[var(--border)] bg-[var(--surface)] p-3">
+    <div className="relative shrink-0 border-t border-[var(--border)] bg-[var(--surface)] p-2.5 sm:p-3">
       {knowledgeOpen && (
         <div className="absolute bottom-[72px] left-3 right-3 z-30 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
           <div className="border-b border-[var(--border)] p-2">
