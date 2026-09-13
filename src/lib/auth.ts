@@ -46,28 +46,46 @@ export async function verifySessionToken(token?: string | null): Promise<Session
   }
 }
 
+async function refreshSessionUser(session: SessionUser | null): Promise<SessionUser | null> {
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: { id: true, name: true, email: true, role: true },
+  });
+
+  if (!user) return null;
+
+  // Never trust authorization-sensitive fields such as role from a long-lived JWT.
+  // The database is the source of truth, so role changes/revocation take effect immediately.
+  return user;
+}
+
 export async function getSessionFromRequest(request: NextRequest) {
-  return verifySessionToken(request.cookies.get(AUTH_COOKIE)?.value);
+  const session = await verifySessionToken(request.cookies.get(AUTH_COOKIE)?.value);
+  return refreshSessionUser(session);
 }
 
 export async function getServerSession() {
   const store = await cookies();
-  return verifySessionToken(store.get(AUTH_COOKIE)?.value);
+  const session = await verifySessionToken(store.get(AUTH_COOKIE)?.value);
+  return refreshSessionUser(session);
 }
 
 export async function requireUser(request: NextRequest) {
   const session = await getSessionFromRequest(request);
   if (!session) return null;
-  const user = await prisma.user.findUnique({
+
+  return prisma.user.findUnique({
     where: { id: session.id },
     select: { id: true, name: true, email: true, role: true, bio: true, avatarUrl: true },
   });
-  return user;
 }
 
 export async function requireServerUser() {
   const session = await getServerSession();
   if (!session) return null;
+
   return prisma.user.findUnique({
     where: { id: session.id },
     select: { id: true, name: true, email: true, role: true, bio: true, avatarUrl: true },

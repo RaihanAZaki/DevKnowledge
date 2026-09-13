@@ -1,284 +1,402 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bell,
   Check,
+  CheckCheck,
+  Clock3,
+  LoaderCircle,
   MessageSquare,
+  ShieldCheck,
   Trophy,
-  X
+  UserCheck,
+  UserPlus,
+  UsersRound,
+  X,
 } from "lucide-react";
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  referenceId: string | null;
+  createdAt: string;
+};
 
-const notifications = [
-  {
-    id:1,
-    title:"Your answer was accepted",
-    message:"Your solution on JWT discussion was accepted",
-    type:"success",
-    time:"2 minutes ago"
-  },
-  {
-    id:2,
-    title:"New reply",
-    message:"Budi replied to your discussion",
-    type:"reply",
-    time:"10 minutes ago"
-  },
-  {
-    id:3,
-    title:"New badge earned",
-    message:"You earned Problem Solver badge",
-    type:"badge",
-    time:"1 hour ago"
+type NotificationResponse = {
+  notifications: NotificationItem[];
+  unreadCount: number;
+};
+
+function relativeTime(value: string) {
+  const date = new Date(value);
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+  }).format(date);
+}
+
+function NotificationIcon({ type }: { type: string }) {
+  if (type === "FRIEND_REQUEST") return <UserPlus className="h-4 w-4" />;
+  if (type === "FRIEND_ACCEPTED") return <UserCheck className="h-4 w-4" />;
+  if (type === "FORUM_REPLY") return <MessageSquare className="h-4 w-4" />;
+  if (type === "FORUM_ACCEPTED") return <Check className="h-4 w-4" />;
+  if (type === "BADGE") return <Trophy className="h-4 w-4" />;
+  if (type === "GROUP_ADMIN" || type === "GROUP_ROLE" || type === "GROUP_OWNER") return <ShieldCheck className="h-4 w-4" />;
+  if (type === "GROUP_MESSAGE" || type === "GROUP_MEMBER" || type === "GROUP_MENTION" || type === "GROUP_ADDED") return <UsersRound className="h-4 w-4" />;
+  return <Bell className="h-4 w-4" />;
+}
+
+export default function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const loadNotifications = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+
+      const response = await fetch("/api/notifications?limit=30", {
+        cache: "no-store",
+      });
+
+      if (response.status === 401) return;
+      if (!response.ok) throw new Error("Failed to load notifications.");
+
+      const data = (await response.json()) as NotificationResponse;
+      setItems(data.notifications ?? []);
+      setUnreadCount(data.unreadCount ?? 0);
+      setError(null);
+    } catch (loadError) {
+      console.error("LOAD NOTIFICATIONS:", loadError);
+      if (!silent) setError("Unable to load notifications.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadNotifications();
+
+    const interval = window.setInterval(() => {
+      void loadNotifications(true);
+    }, 10000);
+
+    return () => window.clearInterval(interval);
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    function onMouseDown(event: MouseEvent) {
+      if (
+        open &&
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [open]);
+
+  async function markRead(id: string) {
+    const current = items.find((item) => item.id === id);
+    if (!current || current.isRead) return;
+
+    setItems((previous) =>
+      previous.map((item) =>
+        item.id === id ? { ...item, isRead: true } : item,
+      ),
+    );
+    setUnreadCount((count) => Math.max(0, count - 1));
+
+    const response = await fetch(`/api/notifications/${id}/read`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      await loadNotifications(true);
+    }
   }
-];
 
-
-export default function NotificationBell(){
-
-
-const [open,setOpen]=useState(false);
-
-
-return (
-
-<div className="relative">
-
-
-<button
-
-onClick={()=>setOpen(!open)}
-
-className="
-relative
-grid
-h-10
-w-10
-place-items-center
-rounded-xl
-border
-border-[var(--border)]
-bg-[var(--surface)]
-hover:bg-[var(--surface-soft)]
-"
-
->
-
-
-<Bell className="h-4 w-4"/>
-
-
-<span
-
-className="
-absolute
-right-2
-top-2
-h-2
-w-2
-rounded-full
-bg-red-500
-"
-
-/>
-
-
-</button>
-
-
-
-{
-open &&
-
-
-<div
-
-className="
-absolute
-right-0
-top-12
-z-50
-w-80
-overflow-hidden
-rounded-2xl
-border
-border-[var(--border)]
-bg-[var(--surface)]
-shadow-xl
-"
-
->
-
-
-<div
-
-className="
-flex
-items-center
-justify-between
-border-b
-border-[var(--border)]
-p-4
-"
-
->
-
-<span className="font-semibold">
-
-Notifications
-
-</span>
-
-
-<button>
-
-<X className="h-4 w-4"/>
-
-</button>
-
-</div>
-
-
-
-
-<div className="divide-y">
-
-
-{
-notifications.map(item=>(
-
-
-<div
-
-key={item.id}
-
-className="
-flex
-gap-3
-p-4
-hover:bg-[var(--surface-soft)]
-"
-
->
-
-
-<div
-
-className="
-grid
-h-9
-w-9
-place-items-center
-rounded-xl
-bg-[var(--primary-soft)]
-"
-
->
-
-
-{
-item.type==="reply"
-
-?
-
-<MessageSquare className="h-4 w-4"/>
-
-:
-
-item.type==="badge"
-
-?
-
-<Trophy className="h-4 w-4"/>
-
-:
-
-<Check className="h-4 w-4"/>
-
-}
-
-
-</div>
-
-
-
-<div>
-
-
-<p className="text-sm font-medium">
-
-{item.title}
-
-</p>
-
-
-<p className="
-mt-1
-text-xs
-text-[var(--text-soft)]
-">
-
-{item.message}
-
-</p>
-
-
-<p className="
-mt-2
-text-xs
-text-[var(--text-muted)]
-">
-
-{item.time}
-
-</p>
-
-
-</div>
-
-
-</div>
-
-
-))
-
-}
-
-
-</div>
-
-
-
-<button
-
-className="
-w-full
-border-t
-border-[var(--border)]
-p-3
-text-sm
-font-medium
-text-[var(--primary)]
-"
-
->
-
-Mark all as read
-
-</button>
-
-
-
-</div>
-
-
-}
-
-
-</div>
-
-
-)
-
+  async function markAllRead() {
+    if (unreadCount === 0) return;
+
+    const response = await fetch("/api/notifications/read-all", {
+      method: "POST",
+    });
+
+    if (!response.ok) return;
+
+    setItems((previous) =>
+      previous.map((item) => ({ ...item, isRead: true })),
+    );
+    setUnreadCount(0);
+  }
+
+  async function respondToFriendRequest(
+    notification: NotificationItem,
+    decision: "accept" | "reject",
+  ) {
+    if (!notification.referenceId) return;
+
+    try {
+      setActionId(notification.id);
+      setError(null);
+
+      const response = await fetch(
+        `/api/friends/${notification.referenceId}/${decision}`,
+        { method: "POST" },
+      );
+
+      const contentType = response.headers.get("content-type") ?? "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : null;
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? `Unable to ${decision} friend request.`);
+      }
+
+      await loadNotifications(true);
+
+      window.dispatchEvent(
+        new CustomEvent("devknowledge:friendship-changed", {
+          detail: { decision, friendshipId: notification.referenceId },
+        }),
+      );
+    } catch (actionError) {
+      console.error("FRIEND REQUEST NOTIFICATION ACTION:", actionError);
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Unable to update friend request.",
+      );
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="relative grid h-10 w-10 place-items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] transition hover:bg-[var(--surface-soft)]"
+        aria-label="Notifications"
+      >
+        <Bell className="h-4 w-4" />
+
+        {unreadCount > 0 ? (
+          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white ring-2 ring-[var(--background)]">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        ) : null}
+      </button>
+
+      {open ? (
+        <div className="absolute right-0 top-12 z-50 w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3.5">
+            <div>
+              <div className="text-sm font-semibold">Notifications</div>
+              <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {error ? (
+            <div className="border-b border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-600">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="max-h-[430px] overflow-y-auto">
+            {loading && items.length === 0 ? (
+              <div className="flex min-h-40 items-center justify-center text-[var(--text-muted)]">
+                <LoaderCircle className="h-5 w-5 animate-spin" />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div className="mt-3 text-sm font-medium">No notifications yet</div>
+                <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                  Friend requests and other activity will appear here.
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-[var(--border)]">
+                {items.map((item) => {
+                  const isFriendRequest = item.type === "FRIEND_REQUEST";
+                  const actionLoading = actionId === item.id;
+
+                  const content = (
+                    <>
+                      <div
+                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
+                          item.isRead
+                            ? "bg-[var(--surface-soft)] text-[var(--text-muted)]"
+                            : "bg-[var(--primary-soft)] text-[var(--primary)]"
+                        }`}
+                      >
+                        <NotificationIcon type={item.type} />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">{item.title}</p>
+                            <p className="mt-1 text-xs leading-5 text-[var(--text-soft)]">
+                              {item.message}
+                            </p>
+                          </div>
+
+                          {!item.isRead ? (
+                            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--primary)]" />
+                          ) : null}
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
+                          <Clock3 className="h-3 w-3" />
+                          {relativeTime(item.createdAt)}
+                        </div>
+
+                        {isFriendRequest ? (
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              disabled={actionLoading}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void respondToFriendRequest(item, "accept");
+                              }}
+                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--primary)] px-3 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                            >
+                              {actionLoading ? (
+                                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                              Accept
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={actionLoading}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void respondToFriendRequest(item, "reject");
+                              }}
+                              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium transition hover:bg-[var(--surface-soft)] disabled:opacity-50"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              Decline
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  );
+
+                  if (item.type === "FRIEND_ACCEPTED" && item.referenceId) {
+                    return (
+                      <Link
+                        key={item.id}
+                        href={`/profile/${item.referenceId}`}
+                        onClick={() => {
+                          void markRead(item.id);
+                          setOpen(false);
+                        }}
+                        className={`flex gap-3 p-4 transition hover:bg-[var(--surface-soft)] ${
+                          item.isRead ? "" : "bg-[color-mix(in_srgb,var(--primary-soft)_35%,transparent)]"
+                        }`}
+                      >
+                        {content}
+                      </Link>
+                    );
+                  }
+
+                  if (["GROUP_MENTION", "GROUP_ADDED", "GROUP_ROLE", "GROUP_OWNER", "GROUP_MESSAGE", "GROUP_MEMBER", "GROUP_ADMIN"].includes(item.type) && item.referenceId) {
+                    return (
+                      <Link
+                        key={item.id}
+                        href={`/messages/groups/${item.referenceId}`}
+                        onClick={() => {
+                          void markRead(item.id);
+                          setOpen(false);
+                        }}
+                        className={`flex gap-3 p-4 transition hover:bg-[var(--surface-soft)] ${
+                          item.isRead ? "" : "bg-[color-mix(in_srgb,var(--primary-soft)_35%,transparent)]"
+                        }`}
+                      >
+                        {content}
+                      </Link>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => void markRead(item.id)}
+                      className={`flex cursor-pointer gap-3 p-4 transition hover:bg-[var(--surface-soft)] ${
+                        item.isRead ? "" : "bg-[color-mix(in_srgb,var(--primary-soft)_35%,transparent)]"
+                      }`}
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3">
+            <span className="text-[11px] text-[var(--text-muted)]">
+              Updates refresh automatically
+            </span>
+
+            <button
+              type="button"
+              disabled={unreadCount === 0}
+              onClick={() => void markAllRead()}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--primary)] disabled:cursor-default disabled:opacity-40"
+            >
+              <CheckCheck className="h-3.5 w-3.5" />
+              Mark all read
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }

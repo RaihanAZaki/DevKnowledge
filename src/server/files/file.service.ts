@@ -35,12 +35,48 @@ export async function uploadUserFile({
     );
   }
 
+  const allowedContentTypes = new Set([
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/octet-stream",
+    "",
+  ]);
+
+  if (!allowedContentTypes.has(file.type)) {
+    throw new AppError(
+      "Invalid ZIP content type.",
+      400,
+    );
+  }
+
   const maxSize =
     50 * 1024 * 1024;
 
   if (file.size > maxSize) {
     throw new AppError(
       "Maximum ZIP size is 50 MB.",
+      400,
+    );
+  }
+
+  if (file.size < 4) {
+    throw new AppError(
+      "Invalid ZIP file.",
+      400,
+    );
+  }
+
+  const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  const validZipSignature =
+    signature[0] === 0x50 &&
+    signature[1] === 0x4b &&
+    ((signature[2] === 0x03 && signature[3] === 0x04) ||
+      (signature[2] === 0x05 && signature[3] === 0x06) ||
+      (signature[2] === 0x07 && signature[3] === 0x08));
+
+  if (!validZipSignature) {
+    throw new AppError(
+      "File content is not a valid ZIP archive.",
       400,
     );
   }

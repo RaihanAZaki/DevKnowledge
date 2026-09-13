@@ -98,6 +98,11 @@ export async function POST(
             body.content ??
               "",
           ),
+        attachment:
+          body.attachment &&
+          typeof body.attachment === "object"
+            ? body.attachment
+            : null,
       });
 
     return NextResponse.json(

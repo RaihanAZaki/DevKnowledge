@@ -101,6 +101,24 @@ export default function FriendsClient({ initialData }: { initialData: { friends:
     }, []);
 
   useEffect(() => {
+    function handleFriendshipChanged() {
+      void loadFriends();
+    }
+
+    window.addEventListener(
+      "devknowledge:friendship-changed",
+      handleFriendshipChanged,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "devknowledge:friendship-changed",
+        handleFriendshipChanged,
+      );
+    };
+  }, [loadFriends]);
+
+  useEffect(() => {
     if (
       query.trim().length < 2
     ) {

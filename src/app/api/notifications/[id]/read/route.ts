@@ -1,0 +1,1 @@
+export { POST } from "@/server/handlers/notifications/[id]/read/handler";

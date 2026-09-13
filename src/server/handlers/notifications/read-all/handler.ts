@@ -2,13 +2,16 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { jsonError, safeError } from "@/lib/http";
-import { getDashboardData } from "@/server/dashboard/dashboard.service";
+import { markAllNotificationsRead } from "@/server/notifications/notification.service";
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const user = await requireUser(request);
     if (!user) return jsonError("Unauthorized.", 401);
-    const data = await getDashboardData(user);
-    return NextResponse.json({ user, ...data });
-  } catch (error) { return safeError(error); }
+
+    await markAllNotificationsRead(user.id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return safeError(error);
+  }
 }

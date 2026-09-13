@@ -1,5 +1,30 @@
 import { prisma } from "@/lib/prisma";
 import { AppError } from "@/server/shared/app-error";
+import { createNotification } from "@/server/notifications/notification.service";
+import { resolveKnowledgeAttachment, type KnowledgeAttachmentInput } from "@/server/messages/knowledge-chat.service";
+
+
+async function createGroupSystemMessage(
+  groupId: string,
+  senderId: string,
+  content: string,
+) {
+  await prisma.chatGroupMessage.create({
+    data: { groupId, senderId, content, kind: "SYSTEM" },
+  });
+  await prisma.chatGroup.update({
+    where: { id: groupId },
+    data: { updatedAt: new Date() },
+  });
+}
+
+async function userName(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true },
+  });
+  return user?.name ?? "Someone";
+}
 
 async function requireMembership(
   groupId: string,
@@ -78,6 +103,7 @@ export async function listUserGroups(
                 name: true,
                 email: true,
                 avatarUrl: true,
+                lastSeenAt: true,
               },
             },
           },
@@ -181,6 +207,7 @@ export async function getAcceptedFriends(
             name: true,
             email: true,
             avatarUrl: true,
+            lastSeenAt: true,
           },
         },
 
@@ -190,6 +217,7 @@ export async function getAcceptedFriends(
             name: true,
             email: true,
             avatarUrl: true,
+            lastSeenAt: true,
           },
         },
       },
@@ -354,6 +382,7 @@ export async function createGroup({
               name: true,
               email: true,
               avatarUrl: true,
+              lastSeenAt: true,
             },
           },
         },
@@ -399,6 +428,7 @@ export async function getGroup(
                 name: true,
                 email: true,
                 avatarUrl: true,
+                lastSeenAt: true,
               },
             },
           },
@@ -463,115 +493,143 @@ export async function getGroupMessages(
   groupId: string,
   userId: string,
 ) {
-  await requireMembership(
-    groupId,
-    userId,
-  );
-
-  const messages =
-    await prisma.chatGroupMessage.findMany({
-      where: {
-        groupId,
-      },
-
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true,
-          },
-        },
-      },
-
-      orderBy: {
-        createdAt: "desc",
-      },
-
-      take: 100,
-    });
+  await requireMembership(groupId, userId);
 
   await prisma.chatGroupMember.update({
-    where: {
-      groupId_userId: {
-        groupId,
-        userId,
-      },
-    },
-
-    data: {
-      lastReadAt:
-        new Date(),
-    },
+    where: { groupId_userId: { groupId, userId } },
+    data: { lastReadAt: new Date() },
   });
 
-  return messages.reverse();
+  const [messages, members] = await Promise.all([
+    prisma.chatGroupMessage.findMany({
+      where: { groupId },
+      include: {
+        sender: {
+          select: { id: true, name: true, avatarUrl: true, lastSeenAt: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.chatGroupMember.findMany({
+      where: { groupId },
+      select: {
+        userId: true,
+        lastReadAt: true,
+        user: { select: { id: true, name: true } },
+      },
+    }),
+  ]);
+
+  return messages.reverse().map((message) => {
+    const readBy = members
+      .filter(
+        (member) =>
+          member.userId !== message.senderId &&
+          member.lastReadAt.getTime() >= message.createdAt.getTime(),
+      )
+      .map((member) => member.user);
+
+    return { ...message, readBy, readByCount: readBy.length };
+  });
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function sendGroupMessage({
   groupId,
   senderId,
   content,
+  attachment,
 }: {
   groupId: string;
   senderId: string;
   content: string;
+  attachment?: KnowledgeAttachmentInput | null;
 }) {
-  await requireMembership(
-    groupId,
-    senderId,
+  const senderMembership = await requireMembership(groupId, senderId);
+  const text = content.trim();
+
+  if (!text && !attachment) throw new AppError("Message or knowledge attachment is required.", 400);
+  if (text.length > 5000) throw new AppError("Message is too long.", 400);
+
+  const [group, members] = await Promise.all([
+    prisma.chatGroup.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true },
+    }),
+    prisma.chatGroupMember.findMany({
+      where: { groupId },
+      include: { user: { select: { id: true, name: true } } },
+    }),
+  ]);
+
+  if (!group) throw new AppError("Group not found.", 404);
+
+  const knowledge = await resolveKnowledgeAttachment(
+    attachment,
+    members.map((member) => member.userId),
   );
 
-  const text =
-    content.trim();
-
-  if (!text) {
-    throw new AppError(
-      "Message cannot be empty.",
-      400,
-    );
-  }
-
-  if (
-    text.length > 5000
-  ) {
-    throw new AppError(
-      "Message is too long.",
-      400,
-    );
-  }
-
-  const message =
-    await prisma.chatGroupMessage.create({
-      data: {
-        groupId,
-        senderId,
-        content: text,
-      },
-
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true,
-          },
-        },
-      },
-    });
-
-  await prisma.chatGroup.update({
-    where: {
-      id: groupId,
-    },
-
+  const message = await prisma.chatGroupMessage.create({
     data: {
-      updatedAt:
-        new Date(),
+      groupId,
+      senderId,
+      content: text,
+      knowledgeType: knowledge?.type ?? null,
+      knowledgeId: knowledge?.id ?? null,
+      knowledgeTitle: knowledge?.title ?? null,
+    },
+    include: {
+      sender: {
+        select: { id: true, name: true, avatarUrl: true, lastSeenAt: true },
+      },
     },
   });
 
-  return message;
+  await prisma.chatGroup.update({
+    where: { id: groupId },
+    data: { updatedAt: new Date() },
+  });
+
+  const canMentionEveryone =
+    senderMembership.role === "OWNER" || senderMembership.role === "ADMIN";
+  const hasEveryone = /(^|\s)@everyone(?=\s|$|[.,!?])/i.test(text);
+  const mentioned = new Map<string, { id: string; name: string }>();
+
+  if (hasEveryone && canMentionEveryone) {
+    for (const member of members) {
+      if (member.userId !== senderId) mentioned.set(member.userId, member.user);
+    }
+  } else {
+    for (const member of members) {
+      if (member.userId === senderId) continue;
+      const pattern = new RegExp(
+        `(^|\\s)@${escapeRegExp(member.user.name)}(?=\\s|$|[.,!?])`,
+        "i",
+      );
+      if (pattern.test(text)) mentioned.set(member.userId, member.user);
+    }
+  }
+
+  if (mentioned.size > 0) {
+    const sender = members.find((member) => member.userId === senderId)?.user;
+    await Promise.all(
+      [...mentioned.values()].map((mentionedUser) =>
+        createNotification({
+          userId: mentionedUser.id,
+          title: `Mentioned in ${group.name}`,
+          message: `${sender?.name ?? "Someone"} mentioned you in a group message.`,
+          type: "GROUP_MENTION",
+          referenceId: groupId,
+        }),
+      ),
+    );
+  }
+
+  return { ...message, readBy: [], readByCount: 0 };
 }
 
 export async function addGroupMembers({
@@ -631,18 +689,41 @@ export async function addGroupMembers({
     );
   }
 
-  await prisma.chatGroupMember.createMany({
-    data:
-      uniqueIds.map(
-        (userId) => ({
-          groupId,
-          userId,
-          role: "MEMBER",
-        }),
-      ),
+  const existing = await prisma.chatGroupMember.findMany({
+    where: { groupId, userId: { in: uniqueIds } },
+    select: { userId: true },
+  });
+  const existingIds = new Set(existing.map((item) => item.userId));
+  const addedIds = uniqueIds.filter((id) => !existingIds.has(id));
 
+  await prisma.chatGroupMember.createMany({
+    data: addedIds.map((userId) => ({ groupId, userId, role: "MEMBER" })),
     skipDuplicates: true,
   });
+
+  if (addedIds.length > 0) {
+    const [actorName, group, addedUsers] = await Promise.all([
+      userName(actorId),
+      prisma.chatGroup.findUnique({ where: { id: groupId }, select: { name: true } }),
+      prisma.user.findMany({ where: { id: { in: addedIds } }, select: { id: true, name: true } }),
+    ]);
+    await createGroupSystemMessage(
+      groupId,
+      actorId,
+      `${actorName} added ${addedUsers.map((user) => user.name).join(", ")}.`,
+    );
+    await Promise.all(
+      addedUsers.map((addedUser) =>
+        createNotification({
+          userId: addedUser.id,
+          title: `Added to ${group?.name ?? "a group"}`,
+          message: `${actorName} added you to the group.`,
+          type: "GROUP_ADDED",
+          referenceId: groupId,
+        }),
+      ),
+    );
+  }
 
   return prisma.chatGroupMember.findMany({
     where: {
@@ -717,15 +798,21 @@ export async function removeGroupMember({
     );
   }
 
+  const [actorName, targetName] = await Promise.all([
+    userName(actorId),
+    userName(memberId),
+  ]);
+
   await prisma.chatGroupMember.delete({
     where: {
       groupId_userId: {
         groupId,
-        userId:
-          memberId,
+        userId: memberId,
       },
     },
   });
+
+  await createGroupSystemMessage(groupId, actorId, `${actorName} removed ${targetName}.`);
 }
 
 export async function leaveGroup(
@@ -748,6 +835,8 @@ export async function leaveGroup(
     );
   }
 
+  const leavingName = await userName(userId);
+
   await prisma.chatGroupMember.delete({
     where: {
       groupId_userId: {
@@ -756,6 +845,8 @@ export async function leaveGroup(
       },
     },
   });
+
+  await createGroupSystemMessage(groupId, userId, `${leavingName} left the group.`);
 }
 
 export async function deleteGroup(
@@ -893,22 +984,15 @@ export async function updateGroupAvatar({
   const dataUrl =
     `data:${file.type};base64,${base64}`;
 
-  return prisma.chatGroup.update({
-    where: {
-      id: groupId,
-    },
-
-    data: {
-      avatarUrl:
-        dataUrl,
-    },
-
-    select: {
-      id: true,
-      name: true,
-      avatarUrl: true,
-    },
+  const group = await prisma.chatGroup.update({
+    where: { id: groupId },
+    data: { avatarUrl: dataUrl },
+    select: { id: true, name: true, avatarUrl: true },
   });
+
+  const actorName = await userName(userId);
+  await createGroupSystemMessage(groupId, userId, `${actorName} changed the group photo.`);
+  return group;
 }
 
 export async function setGroupMemberRole({
@@ -968,17 +1052,111 @@ export async function setGroupMemberRole({
     );
   }
 
-  return prisma.chatGroupMember.update({
-    where: {
-      groupId_userId: {
-        groupId,
-        userId:
-          memberId,
-      },
-    },
-
-    data: {
-      role,
-    },
+  const updated = await prisma.chatGroupMember.update({
+    where: { groupId_userId: { groupId, userId: memberId } },
+    data: { role },
   });
+
+  const [actorName, targetName, group] = await Promise.all([
+    userName(actorId),
+    userName(memberId),
+    prisma.chatGroup.findUnique({ where: { id: groupId }, select: { name: true } }),
+  ]);
+  const action = role === "ADMIN" ? "made" : "removed";
+  const suffix = role === "ADMIN" ? "an admin" : "as admin";
+  await createGroupSystemMessage(groupId, actorId, `${actorName} ${action} ${targetName} ${suffix}.`);
+  await createNotification({
+    userId: memberId,
+    title: role === "ADMIN" ? `You are now an admin in ${group?.name ?? "a group"}` : `Admin role updated in ${group?.name ?? "a group"}`,
+    message: role === "ADMIN" ? `${actorName} promoted you to group admin.` : `${actorName} removed your group admin role.`,
+    type: "GROUP_ROLE",
+    referenceId: groupId,
+  });
+  return updated;
+}
+
+export async function updateGroupInfo({
+  groupId,
+  actorId,
+  name,
+  description,
+}: {
+  groupId: string;
+  actorId: string;
+  name: string;
+  description?: string | null;
+}) {
+  await requireGroupManager(groupId, actorId);
+  const cleanName = name.trim();
+  if (cleanName.length < 2 || cleanName.length > 80) {
+    throw new AppError("Group name must contain 2-80 characters.", 400);
+  }
+  const cleanDescription = description?.trim().slice(0, 500) || null;
+  const previous = await prisma.chatGroup.findUnique({
+    where: { id: groupId },
+    select: { name: true, description: true },
+  });
+  if (!previous) throw new AppError("Group not found.", 404);
+
+  const group = await prisma.chatGroup.update({
+    where: { id: groupId },
+    data: { name: cleanName, description: cleanDescription },
+    select: { id: true, name: true, description: true, avatarUrl: true },
+  });
+  const actorName = await userName(actorId);
+  const changes: string[] = [];
+  if (previous.name !== cleanName) changes.push(`renamed the group to ${cleanName}`);
+  if ((previous.description ?? null) !== cleanDescription) changes.push("updated the group description");
+  if (changes.length > 0) {
+    await createGroupSystemMessage(groupId, actorId, `${actorName} ${changes.join(" and ")}.`);
+  }
+  return group;
+}
+
+export async function transferGroupOwnership({
+  groupId,
+  ownerId,
+  newOwnerId,
+}: {
+  groupId: string;
+  ownerId: string;
+  newOwnerId: string;
+}) {
+  const ownerMembership = await requireMembership(groupId, ownerId);
+  if (ownerMembership.role !== "OWNER") {
+    throw new AppError("Only the group owner can transfer ownership.", 403);
+  }
+  if (ownerId === newOwnerId) throw new AppError("This user is already the owner.", 400);
+  const target = await prisma.chatGroupMember.findUnique({
+    where: { groupId_userId: { groupId, userId: newOwnerId } },
+  });
+  if (!target) throw new AppError("New owner must already be a group member.", 400);
+
+  await prisma.$transaction([
+    prisma.chatGroup.update({ where: { id: groupId }, data: { ownerId: newOwnerId } }),
+    prisma.chatGroupMember.update({
+      where: { groupId_userId: { groupId, userId: ownerId } },
+      data: { role: "ADMIN" },
+    }),
+    prisma.chatGroupMember.update({
+      where: { groupId_userId: { groupId, userId: newOwnerId } },
+      data: { role: "OWNER" },
+    }),
+  ]);
+
+  const [oldName, newName, group] = await Promise.all([
+    userName(ownerId),
+    userName(newOwnerId),
+    prisma.chatGroup.findUnique({ where: { id: groupId }, select: { name: true } }),
+  ]);
+  await createGroupSystemMessage(groupId, ownerId, `${oldName} transferred ownership to ${newName}.`);
+  await createNotification({
+    userId: newOwnerId,
+    title: `You now own ${group?.name ?? "a group"}`,
+    message: `${oldName} transferred group ownership to you.`,
+    type: "GROUP_OWNER",
+    referenceId: groupId,
+  });
+
+  return getGroup(groupId, newOwnerId);
 }

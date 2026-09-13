@@ -1,10 +1,6 @@
-import {
-  NextResponse,
-} from "next/server";
+import { NextResponse } from "next/server";
 
-import {
-  getServerSession,
-} from "@/lib/auth";
+import { getServerSession } from "@/lib/auth";
 
 import {
   setGroupMemberRole,
@@ -27,8 +23,7 @@ export async function PUT(
   if (!user) {
     return NextResponse.json(
       {
-        error:
-          "Unauthorized.",
+        error: "Unauthorized.",
       },
       {
         status: 401,
@@ -36,26 +31,26 @@ export async function PUT(
     );
   }
 
-  const {
-    id,
-    memberId,
-  } =
-    await context.params;
-
   try {
+    const {
+      id,
+      memberId,
+    } = await context.params;
+
     const body =
       await request.json();
 
+    const role =
+      body?.role;
+
     if (
-      body.role !==
-        "ADMIN" &&
-      body.role !==
-        "MEMBER"
+      role !== "ADMIN" &&
+      role !== "MEMBER"
     ) {
       return NextResponse.json(
         {
           error:
-            "Invalid role.",
+            "Role must be ADMIN or MEMBER.",
         },
         {
           status: 400,
@@ -66,23 +61,27 @@ export async function PUT(
     const member =
       await setGroupMemberRole({
         groupId: id,
-        actorId:
-          user.id,
+        actorId: user.id,
         memberId,
-        role:
-          body.role,
+        role,
       });
 
     return NextResponse.json({
+      success: true,
       member,
     });
   } catch (error) {
+    console.error(
+      "UPDATE GROUP MEMBER ROLE ERROR:",
+      error,
+    );
+
     return NextResponse.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to change role.",
+            : "Unable to update member role.",
       },
       {
         status: 400,

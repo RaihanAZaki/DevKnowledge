@@ -13,11 +13,17 @@ export function documentAccess(
   const isPublic = document.visibility === "PUBLIC" && document.isPublished;
   const isShared = document.sharedWith?.some((share) => share.userId === user.id) ?? false;
 
+  const canModeratePublic =
+    document.visibility === "PUBLIC" &&
+    (user.role === "ADMIN" || user.role === "MODERATOR");
+
   return {
     isOwner,
     isPublic,
     isShared,
     canView: isOwner || isPublic || isShared,
-    canManage: isOwner || user.role === "ADMIN" || user.role === "MODERATOR",
+    // Private documents stay owner-managed even for workspace moderators.
+    // Admin/moderator moderation applies only to public documentation.
+    canManage: isOwner || canModeratePublic,
   };
 }

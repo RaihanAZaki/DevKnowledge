@@ -86,10 +86,13 @@ export async function getDocumentById(id: string, user: SessionUser) {
 }
 
 export async function updateDocument(id: string, user: SessionUser, data: DocumentInput) {
-  const current = await prisma.documentation.findUnique({ where: { id }, select: { authorId: true } });
+  const current = await prisma.documentation.findUnique({
+    where: { id },
+    select: { authorId: true, visibility: true, isPublished: true },
+  });
   if (!current) throw new AppError("Document not found.", 404);
-  const canManage = current.authorId === user.id || user.role === "ADMIN" || user.role === "MODERATOR";
-  if (!canManage) throw new AppError("Forbidden.", 403);
+  const access = documentAccess(current, user);
+  if (!access.canManage) throw new AppError("Forbidden.", 403);
 
   const document = await prisma.documentation.update({
     where: { id },
@@ -109,10 +112,13 @@ export async function updateDocument(id: string, user: SessionUser, data: Docume
 }
 
 export async function deleteDocument(id: string, user: SessionUser) {
-  const current = await prisma.documentation.findUnique({ where: { id }, select: { authorId: true, title: true } });
+  const current = await prisma.documentation.findUnique({
+    where: { id },
+    select: { authorId: true, title: true, visibility: true, isPublished: true },
+  });
   if (!current) throw new AppError("Document not found.", 404);
-  const canManage = current.authorId === user.id || user.role === "ADMIN" || user.role === "MODERATOR";
-  if (!canManage) throw new AppError("Forbidden.", 403);
+  const access = documentAccess(current, user);
+  if (!access.canManage) throw new AppError("Forbidden.", 403);
 
   await prisma.documentation.delete({ where: { id } });
   await createAuditLog({

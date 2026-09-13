@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: Context) {
     const { userId } = await context.params;
     const parsed = messageSchema.safeParse(await request.json());
     if (!parsed.success) return jsonError("Invalid message.", 422, parsed.error.flatten());
-    const message = await sendMessage(me.id, userId, parsed.data.content);
+    const message = await sendMessage(me.id, userId, parsed.data.content, parsed.data.attachment);
     return NextResponse.json({ message }, { status: 201 });
   } catch (error) { return safeError(error); }
 }

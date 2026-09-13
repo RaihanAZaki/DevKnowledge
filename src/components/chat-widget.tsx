@@ -12,6 +12,12 @@ import {
   Send,
   ShieldCheck,
   Trash2,
+  Paperclip,
+  FileText,
+  Code2,
+  MessagesSquare,
+  Pencil,
+  LogOut,
   UserMinus,
   UserPlus,
   UsersRound,
@@ -37,6 +43,17 @@ type Friend = {
     | string
     | null;
   email?: string;
+  lastSeenAt?: string | null;
+};
+
+type KnowledgeType = "SNIPPET" | "DOCUMENTATION" | "FORUM";
+
+type KnowledgeItem = {
+  type: KnowledgeType;
+  id: string;
+  title: string;
+  subtitle?: string;
+  href?: string;
 };
 
 type DirectMessage = {
@@ -45,6 +62,10 @@ type DirectMessage = {
   receiverId: string;
   content: string;
   isRead: boolean;
+  readAt?: string | null;
+  knowledgeType?: KnowledgeType | null;
+  knowledgeId?: string | null;
+  knowledgeTitle?: string | null;
   createdAt: string;
 };
 
@@ -59,8 +80,14 @@ type Conversation = {
 type GroupMessage = {
   id: string;
   content: string;
+  kind?: "MESSAGE" | "SYSTEM";
+  knowledgeType?: KnowledgeType | null;
+  knowledgeId?: string | null;
+  knowledgeTitle?: string | null;
   createdAt: string;
   updatedAt?: string;
+  readByCount?: number;
+  readBy?: Array<{ id: string; name: string }>;
 
   sender: {
     id: string;
@@ -68,6 +95,7 @@ type GroupMessage = {
     avatarUrl:
       | string
       | null;
+    lastSeenAt?: string | null;
   };
 };
 
@@ -114,6 +142,7 @@ type GroupMember = {
     avatarUrl:
       | string
       | null;
+    lastSeenAt?: string | null;
 
     role?: string;
   };
@@ -153,6 +182,23 @@ type GroupDetail = {
   canManage: boolean;
   isOwner: boolean;
 };
+
+
+function isOnline(lastSeenAt?: string | null) {
+  if (!lastSeenAt) return false;
+  return Date.now() - new Date(lastSeenAt).getTime() <= 60_000;
+}
+
+function presenceLabel(lastSeenAt?: string | null) {
+  if (isOnline(lastSeenAt)) return "Online";
+  if (!lastSeenAt) return "Offline";
+  const diff = Date.now() - new Date(lastSeenAt).getTime();
+  const minutes = Math.max(1, Math.floor(diff / 60_000));
+  if (minutes < 60) return `Last seen ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Last seen ${hours}h ago`;
+  return `Last seen ${new Date(lastSeenAt).toLocaleDateString()}`;
+}
 
 type View =
   | "list"
@@ -250,6 +296,12 @@ export default function ChatWidget() {
     setSending,
   ] =
     useState(false);
+
+  const [selectedKnowledge, setSelectedKnowledge] = useState<KnowledgeItem | null>(null);
+  const [editingGroup, setEditingGroup] = useState(false);
+  const [editGroupName, setEditGroupName] = useState("");
+  const [editGroupDescription, setEditGroupDescription] = useState("");
+  const [savingGroup, setSavingGroup] = useState(false);
 
   const [
     groupName,
@@ -747,6 +799,28 @@ export default function ChatWidget() {
       ],
     );
 
+  useEffect(() => {
+    async function heartbeat() {
+      try {
+        await fetch("/api/messages/presence", { method: "POST" });
+      } catch {
+        // Presence is best effort.
+      }
+    }
+
+    void heartbeat();
+    const interval = window.setInterval(() => void heartbeat(), 25_000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void heartbeat();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
   /*
    * =========================
    * INITIAL POLLING
@@ -825,6 +899,7 @@ export default function ChatWidget() {
     );
 
     setMessage("");
+    setSelectedKnowledge(null);
 
     setView(
       "direct",
@@ -838,7 +913,7 @@ export default function ChatWidget() {
   async function sendDirectMessage() {
     if (
       !selectedFriend ||
-      !message.trim() ||
+      (!message.trim() && !selectedKnowledge) ||
       sending
     ) {
       return;
@@ -865,6 +940,9 @@ export default function ChatWidget() {
               JSON.stringify({
                 content:
                   message.trim(),
+                attachment: selectedKnowledge
+                  ? { type: selectedKnowledge.type, id: selectedKnowledge.id }
+                  : null,
               }),
           },
         );
@@ -876,6 +954,7 @@ export default function ChatWidget() {
       }
 
       setMessage("");
+      setSelectedKnowledge(null);
 
       await loadMessages(
         selectedFriend.id,
@@ -905,6 +984,7 @@ export default function ChatWidget() {
     );
 
     setMessage("");
+    setSelectedKnowledge(null);
 
     setView(
       "group",
@@ -918,7 +998,7 @@ export default function ChatWidget() {
   async function sendGroupMessage() {
     if (
       !selectedGroup ||
-      !message.trim() ||
+      (!message.trim() && !selectedKnowledge) ||
       sending
     ) {
       return;
@@ -945,6 +1025,9 @@ export default function ChatWidget() {
               JSON.stringify({
                 content:
                   message.trim(),
+                attachment: selectedKnowledge
+                  ? { type: selectedKnowledge.type, id: selectedKnowledge.id }
+                  : null,
               }),
           },
         );
@@ -956,6 +1039,7 @@ export default function ChatWidget() {
       }
 
       setMessage("");
+      setSelectedKnowledge(null);
 
       await loadGroupMessages(
         selectedGroup.id,
@@ -1128,6 +1212,9 @@ export default function ChatWidget() {
     await loadGroupDetail(
       selectedGroup.id,
     );
+    setEditGroupName(selectedGroup.name);
+    setEditGroupDescription(selectedGroup.description ?? "");
+    setEditingGroup(false);
 
     setView(
       "group-detail",
@@ -1222,73 +1309,110 @@ export default function ChatWidget() {
    */
 
   async function changeMemberRole(
-    member: GroupMember,
-  ) {
-    if (
-      !selectedGroup
-    ) {
-      return;
-    }
-
-    try {
-      setMemberActionId(
-        member.userId,
-      );
-
-      const role =
-        member.role ===
-        "ADMIN"
-          ? "MEMBER"
-          : "ADMIN";
-
-      const response =
-        await fetch(
-          `/api/messages/groups/${selectedGroup.id}/members/${member.userId}/role`,
-          {
-            method:
-              "PUT",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify({
-                role,
-              }),
-          },
-        );
-
-      const data =
-        await response.json();
-
-      if (
-        !response.ok
-      ) {
-        throw new Error(
-          data.error ||
-            "Unable to change role.",
-        );
-      }
-
-      await loadGroupDetail(
-        selectedGroup.id,
-      );
-    } catch (
-      error
-    ) {
-      window.alert(
-        error instanceof Error
-          ? error.message
-          : "Unable to change role.",
-      );
-    } finally {
-      setMemberActionId(
-        null,
-      );
-    }
+  member: GroupMember,
+) {
+  if (!selectedGroup) {
+    return;
   }
+
+  try {
+    setMemberActionId(
+      member.userId,
+    );
+
+    const role =
+      member.role === "ADMIN"
+        ? "MEMBER"
+        : "ADMIN";
+
+    const response =
+      await fetch(
+        `/api/messages/groups/${selectedGroup.id}/members/${member.userId}/role`,
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            role,
+          }),
+        },
+      );
+
+    const contentType =
+      response.headers.get(
+        "content-type",
+      );
+
+    let data:
+      | {
+          error?: string;
+          member?: unknown;
+        }
+      | null = null;
+
+    if (
+      contentType?.includes(
+        "application/json",
+      )
+    ) {
+      data =
+        await response.json();
+    } else {
+      const text =
+        await response.text();
+
+      console.error(
+        "ROLE API NON JSON RESPONSE:",
+        {
+          status:
+            response.status,
+
+          url:
+            response.url,
+
+          body:
+            text,
+        },
+      );
+
+      throw new Error(
+        `Role API failed (${response.status}).`,
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+          "Unable to change role.",
+      );
+    }
+
+    await loadGroupDetail(
+      selectedGroup.id,
+    );
+
+    await loadGroups();
+  } catch (error) {
+    console.error(
+      "CHANGE MEMBER ROLE:",
+      error,
+    );
+
+    window.alert(
+      error instanceof Error
+        ? error.message
+        : "Unable to change role.",
+    );
+  } finally {
+    setMemberActionId(
+      null,
+    );
+  }
+}
 
   /*
    * =========================
@@ -1296,73 +1420,93 @@ export default function ChatWidget() {
    * =========================
    */
 
-  async function removeMember(
-    member: GroupMember,
-  ) {
-    if (
-      !selectedGroup
-    ) {
-      return;
-    }
-
-    try {
-      setMemberActionId(
-        member.userId,
-      );
-
-      const response =
-        await fetch(
-          `/api/messages/groups/${selectedGroup.id}/members`,
-          {
-            method:
-              "DELETE",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify({
-                memberId:
-                  member.userId,
-              }),
-          },
-        );
-
-      const data =
-        await response.json();
-
-      if (
-        !response.ok
-      ) {
-        throw new Error(
-          data.error ||
-            "Unable to remove member.",
-        );
-      }
-
-      await Promise.all([
-        loadGroupDetail(
-          selectedGroup.id,
-        ),
-
-        loadGroups(),
-      ]);
-    } catch (
-      error
-    ) {
-      window.alert(
-        error instanceof Error
-          ? error.message
-          : "Unable to remove member.",
-      );
-    } finally {
-      setMemberActionId(
-        null,
-      );
-    }
+ async function removeMember(
+  member: GroupMember,
+) {
+  if (!selectedGroup) {
+    return;
   }
+
+  try {
+    setMemberActionId(
+      member.userId,
+    );
+
+    const response =
+      await fetch(
+        `/api/messages/groups/${selectedGroup.id}/members`,
+        {
+          method: "DELETE",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            memberId:
+              member.userId,
+          }),
+        },
+      );
+
+    const contentType =
+      response.headers.get(
+        "content-type",
+      );
+
+    if (
+      !contentType?.includes(
+        "application/json",
+      )
+    ) {
+      const text =
+        await response.text();
+
+      console.error(
+        "REMOVE MEMBER NON JSON:",
+        text,
+      );
+
+      throw new Error(
+        `Remove member API failed (${response.status}).`,
+      );
+    }
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+          "Unable to remove member.",
+      );
+    }
+
+    await Promise.all([
+      loadGroupDetail(
+        selectedGroup.id,
+      ),
+
+      loadGroups(),
+    ]);
+  } catch (error) {
+    console.error(
+      "REMOVE MEMBER:",
+      error,
+    );
+
+    window.alert(
+      error instanceof Error
+        ? error.message
+        : "Unable to remove member.",
+    );
+  } finally {
+    setMemberActionId(
+      null,
+    );
+  }
+}
 
   /*
    * =========================
@@ -1480,6 +1624,69 @@ export default function ChatWidget() {
     }
   }
 
+  async function saveGroupInfo() {
+    if (!selectedGroup || savingGroup || editGroupName.trim().length < 2) return;
+    try {
+      setSavingGroup(true);
+      const response = await fetch(`/api/messages/groups/${selectedGroup.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editGroupName.trim(),
+          description: editGroupDescription.trim(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to update group.");
+      setEditingGroup(false);
+      await Promise.all([loadGroupDetail(selectedGroup.id), loadGroups(), loadGroupMessages(selectedGroup.id)]);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Unable to update group.");
+    } finally {
+      setSavingGroup(false);
+    }
+  }
+
+  async function transferOwnership(member: GroupMember) {
+    if (!selectedGroup || !groupDetail?.isOwner) return;
+    if (!window.confirm(`Transfer ownership to ${member.user.name}? You will become an admin.`)) return;
+    try {
+      setMemberActionId(member.userId);
+      const response = await fetch(`/api/messages/groups/${selectedGroup.id}/transfer-ownership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: member.userId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to transfer ownership.");
+      await Promise.all([loadGroupDetail(selectedGroup.id), loadGroups(), loadGroupMessages(selectedGroup.id)]);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Unable to transfer ownership.");
+    } finally {
+      setMemberActionId(null);
+    }
+  }
+
+  async function leaveSelectedGroup() {
+    if (!selectedGroup || groupDetail?.isOwner) return;
+    if (!window.confirm(`Leave ${selectedGroup.name}?`)) return;
+    const response = await fetch(`/api/messages/groups/${selectedGroup.id}/leave`, { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return window.alert(data.error || "Unable to leave group.");
+    backToList();
+    await loadGroups();
+  }
+
+  async function deleteSelectedGroup() {
+    if (!selectedGroup || !groupDetail?.isOwner) return;
+    if (!window.confirm(`Delete ${selectedGroup.name}? This will permanently delete its messages.`)) return;
+    const response = await fetch(`/api/messages/groups/${selectedGroup.id}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return window.alert(data.error || "Unable to delete group.");
+    backToList();
+    await loadGroups();
+  }
+
   /*
    * =========================
    * BACK
@@ -1514,6 +1721,8 @@ export default function ChatWidget() {
     setMessage(
       "",
     );
+    setSelectedKnowledge(null);
+    setEditingGroup(false);
   }
 
   /*
@@ -1966,7 +2175,7 @@ export default function ChatWidget() {
                     selectedFriend.name
                   }
                   subtitle={
-                    selectedFriend.role
+                    presenceLabel(selectedFriend.lastSeenAt)
                   }
                   avatar={
                     <Avatar
@@ -2005,6 +2214,16 @@ export default function ChatWidget() {
                         createdAt={
                           item.createdAt
                         }
+                        knowledgeType={item.knowledgeType}
+                        knowledgeId={item.knowledgeId}
+                        knowledgeTitle={item.knowledgeTitle}
+                        receipt={
+                          item.senderId === currentUserId
+                            ? item.isRead
+                              ? "Seen"
+                              : "Sent"
+                            : undefined
+                        }
                       />
                     ),
                   )}
@@ -2029,6 +2248,8 @@ export default function ChatWidget() {
                   onSend={() =>
                     void sendDirectMessage()
                   }
+                  attachment={selectedKnowledge}
+                  onAttachmentChange={setSelectedKnowledge}
                 />
               </>
             )}
@@ -2122,6 +2343,16 @@ export default function ChatWidget() {
                         item.sender.id ===
                         currentUserId;
 
+                      if (item.kind === "SYSTEM") {
+                        return (
+                          <div key={item.id} className="flex justify-center py-1">
+                            <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-[10px] text-[var(--text-muted)] shadow-sm">
+                              {item.content}
+                            </span>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
                           key={
@@ -2147,6 +2378,19 @@ export default function ChatWidget() {
                             createdAt={
                               item.createdAt
                             }
+                            receipt={
+                              mine
+                                ? item.readByCount && item.readByCount > 0
+                                  ? `Read by ${item.readByCount}`
+                                  : "Sent"
+                                : undefined
+                            }
+                            knowledgeType={item.knowledgeType}
+                            knowledgeId={item.knowledgeId}
+                            knowledgeTitle={item.knowledgeTitle}
+                            mentionNames={
+                              groupDetail?.group.members.map((member) => member.user.name) ?? []
+                            }
                           />
                         </div>
                       );
@@ -2161,18 +2405,20 @@ export default function ChatWidget() {
                 </ChatBody>
 
                 <Composer
-                  value={
-                    message
+                  value={message}
+                  sending={sending}
+                  onChange={setMessage}
+                  onSend={() => void sendGroupMessage()}
+                  mentionUsers={
+                    groupDetail?.group.members
+                      .filter((member) => member.userId !== currentUserId)
+                      .map((member) => ({ id: member.userId, name: member.user.name })) ?? []
                   }
-                  sending={
-                    sending
+                  allowEveryone={
+                    groupDetail?.currentRole === "OWNER" || groupDetail?.currentRole === "ADMIN"
                   }
-                  onChange={
-                    setMessage
-                  }
-                  onSend={() =>
-                    void sendGroupMessage()
-                  }
+                  attachment={selectedKnowledge}
+                  onAttachmentChange={setSelectedKnowledge}
                 />
               </>
             )}
@@ -2277,34 +2523,42 @@ export default function ChatWidget() {
                       />
                     </div>
 
-                    <h2 className="mt-4 text-base font-semibold">
-                      {
-                        groupDetail
-                          .group
-                          .name
-                      }
-                    </h2>
-
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      {
-                        groupDetail
-                          .group
-                          ._count
-                          .members
-                      }{" "}
-                      members
-                    </p>
-
-                    {groupDetail
-                      .group
-                      .description && (
-                      <p className="mx-auto mt-3 max-w-xs text-xs leading-5 text-[var(--text-muted)]">
-                        {
-                          groupDetail
-                            .group
-                            .description
-                        }
-                      </p>
+                    {editingGroup ? (
+                      <div className="mx-auto mt-4 max-w-xs space-y-2 text-left">
+                        <input
+                          value={editGroupName}
+                          onChange={(event) => setEditGroupName(event.target.value)}
+                          className="field h-9 w-full px-3 text-sm"
+                          placeholder="Group name"
+                        />
+                        <textarea
+                          value={editGroupDescription}
+                          onChange={(event) => setEditGroupDescription(event.target.value)}
+                          className="field min-h-20 w-full resize-none px-3 py-2 text-xs"
+                          placeholder="Group description"
+                        />
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setEditingGroup(false)} className="h-8 flex-1 rounded-lg border border-[var(--border)] text-xs">Cancel</button>
+                          <button type="button" disabled={savingGroup || editGroupName.trim().length < 2} onClick={() => void saveGroupInfo()} className="h-8 flex-1 rounded-lg bg-[var(--primary)] text-xs font-medium text-white disabled:opacity-40">
+                            {savingGroup ? "Saving..." : "Save"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mt-4 flex items-center justify-center gap-2">
+                          <h2 className="text-base font-semibold">{groupDetail.group.name}</h2>
+                          {groupDetail.canManage && (
+                            <button type="button" title="Edit group" onClick={() => { setEditGroupName(groupDetail.group.name); setEditGroupDescription(groupDetail.group.description ?? ""); setEditingGroup(true); }} className="grid h-7 w-7 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--primary)]">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">{groupDetail.group._count.members} members</p>
+                        {groupDetail.group.description && (
+                          <p className="mx-auto mt-3 max-w-xs text-xs leading-5 text-[var(--text-muted)]">{groupDetail.group.description}</p>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -2411,6 +2665,10 @@ export default function ChatWidget() {
                                     member
                                       .user
                                       .avatarUrl,
+                                  lastSeenAt:
+                                    member
+                                      .user
+                                      .lastSeenAt,
                                 }}
                                 small
                               />
@@ -2436,10 +2694,12 @@ export default function ChatWidget() {
                                   )}
                                 </div>
 
-                                <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-                                  {
-                                    member.role
-                                  }
+                                <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
+                                  <span>{member.role}</span>
+                                  <span>·</span>
+                                  <span className={isOnline(member.user.lastSeenAt) ? "text-emerald-500" : ""}>
+                                    {presenceLabel(member.user.lastSeenAt)}
+                                  </span>
                                 </div>
                               </div>
 
@@ -2479,6 +2739,17 @@ export default function ChatWidget() {
                                     </button>
                                   )}
 
+                                  {groupDetail.isOwner && member.role !== "OWNER" && (
+                                    <button
+                                      type="button"
+                                      title="Transfer ownership"
+                                      onClick={() => void transferOwnership(member)}
+                                      className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-muted)] transition hover:bg-amber-50 hover:text-amber-600"
+                                    >
+                                      <Crown className="h-4 w-4" />
+                                    </button>
+                                  )}
+
                                   {canRemove && (
                                     <button
                                       type="button"
@@ -2510,6 +2781,18 @@ export default function ChatWidget() {
                         },
                       )}
                     </div>
+                  </div>
+
+                  <div className="border-t border-[var(--border)] p-4">
+                    {groupDetail.isOwner ? (
+                      <button type="button" onClick={() => void deleteSelectedGroup()} className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-red-200 text-xs font-medium text-red-600 transition hover:bg-red-50">
+                        <Trash2 className="h-3.5 w-3.5" /> Delete group
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => void leaveSelectedGroup()} className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] text-xs font-medium text-[var(--text-muted)] transition hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+                        <LogOut className="h-3.5 w-3.5" /> Leave group
+                      </button>
+                    )}
                   </div>
                 </div>
               </>
@@ -2815,47 +3098,173 @@ function BottomAction({
   );
 }
 
+function knowledgeIcon(type: KnowledgeType) {
+  if (type === "SNIPPET") return <Code2 className="h-3.5 w-3.5" />;
+  if (type === "DOCUMENTATION") return <FileText className="h-3.5 w-3.5" />;
+  return <MessagesSquare className="h-3.5 w-3.5" />;
+}
+
+function knowledgeHref(type: KnowledgeType, id: string) {
+  if (type === "SNIPPET") return `/snippets/${id}`;
+  if (type === "DOCUMENTATION") return `/documentation/${id}`;
+  return `/forum/${id}`;
+}
+
 function Composer({
   value,
   sending,
   onChange,
   onSend,
+  mentionUsers = [],
+  allowEveryone = false,
+  attachment,
+  onAttachmentChange,
 }: {
   value: string;
   sending: boolean;
-
-  onChange: (
-    value: string,
-  ) => void;
-
-  onSend:
-    () => void;
+  onChange: (value: string) => void;
+  onSend: () => void;
+  mentionUsers?: Array<{ id: string; name: string }>;
+  allowEveryone?: boolean;
+  attachment?: KnowledgeItem | null;
+  onAttachmentChange?: (item: KnowledgeItem | null) => void;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [knowledgeQuery, setKnowledgeQuery] = useState("");
+  const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([]);
+  const [knowledgeLoading, setKnowledgeLoading] = useState(false);
+
+  const mentionMatch = value.match(/(?:^|\s)@([^\s@]*)$/);
+  const mentionQuery = mentionMatch?.[1]?.toLowerCase() ?? "";
+  const showMentions = Boolean(mentionMatch) && mentionUsers.length > 0;
+
+  const suggestions = [
+    ...(allowEveryone ? [{ id: "everyone", name: "everyone" }] : []),
+    ...mentionUsers,
+  ]
+    .filter((item) => item.name.toLowerCase().includes(mentionQuery))
+    .slice(0, 6);
+
+  useEffect(() => {
+    if (!knowledgeOpen) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        setKnowledgeLoading(true);
+        const response = await fetch(`/api/messages/knowledge?q=${encodeURIComponent(knowledgeQuery)}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setKnowledgeItems(data.items ?? []);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") console.error("Load knowledge:", error);
+      } finally {
+        setKnowledgeLoading(false);
+      }
+    }, 180);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [knowledgeOpen, knowledgeQuery]);
+
+  function chooseMention(name: string) {
+    const next = value.replace(/(?:^|\s)@([^\s@]*)$/, (match) => {
+      const prefix = match.startsWith(" ") ? " " : "";
+      return `${prefix}@${name} `;
+    });
+    onChange(next);
+    window.setTimeout(() => textareaRef.current?.focus(), 0);
+  }
+
   return (
-    <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] p-3">
+    <div className="relative shrink-0 border-t border-[var(--border)] bg-[var(--surface)] p-3">
+      {knowledgeOpen && (
+        <div className="absolute bottom-[72px] left-3 right-3 z-30 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+          <div className="border-b border-[var(--border)] p-2">
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={knowledgeQuery}
+                onChange={(event) => setKnowledgeQuery(event.target.value)}
+                placeholder="Search snippets, docs, forum..."
+                className="field h-9 flex-1 px-3 text-xs"
+              />
+              <button type="button" onClick={() => setKnowledgeOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-soft)]">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-1.5">
+            {knowledgeLoading ? (
+              <div className="grid h-20 place-items-center"><LoaderCircle className="h-4 w-4 animate-spin text-[var(--text-muted)]" /></div>
+            ) : knowledgeItems.length === 0 ? (
+              <div className="px-3 py-8 text-center text-xs text-[var(--text-muted)]">No knowledge found.</div>
+            ) : (
+              knowledgeItems.map((item) => (
+                <button
+                  key={`${item.type}-${item.id}`}
+                  type="button"
+                  onClick={() => { onAttachmentChange?.(item); setKnowledgeOpen(false); setKnowledgeQuery(""); }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-[var(--surface-soft)]"
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--primary-soft)] text-[var(--primary)]">{knowledgeIcon(item.type)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-medium">{item.title}</span>
+                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">{item.subtitle}</span>
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {showMentions && suggestions.length > 0 && (
+        <div className="absolute bottom-[62px] left-3 right-14 z-20 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+          {suggestions.map((item) => (
+            <button key={item.id} type="button" onClick={() => chooseMention(item.name)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition hover:bg-[var(--surface-soft)]">
+              <span className="font-medium text-[var(--primary)]">@{item.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {attachment && (
+        <div className="mb-2 flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
+          <span className="text-[var(--primary)]">{knowledgeIcon(attachment.type)}</span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-xs font-medium">{attachment.title}</div>
+            <div className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{attachment.type}</div>
+          </div>
+          <button type="button" onClick={() => onAttachmentChange?.(null)} className="grid h-7 w-7 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-hover)]">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-end gap-2">
+        <button
+          type="button"
+          title="Attach knowledge"
+          onClick={() => setKnowledgeOpen((current) => !current)}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--border)] text-[var(--text-muted)] transition hover:border-[var(--primary)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
+
         <textarea
+          ref={textareaRef}
           value={value}
           rows={1}
-          placeholder="Write a message..."
-          onChange={(
-            event,
-          ) =>
-            onChange(
-              event.target
-                .value,
-            )
-          }
-          onKeyDown={(
-            event,
-          ) => {
-            if (
-              event.key ===
-                "Enter" &&
-              !event.shiftKey
-            ) {
+          placeholder="Write a message... Use @ to mention"
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
-
               onSend();
             }
           }}
@@ -2864,23 +3273,35 @@ function Composer({
 
         <button
           type="button"
-          disabled={
-            sending ||
-            !value.trim()
-          }
-          onClick={
-            onSend
-          }
+          disabled={sending || (!value.trim() && !attachment)}
+          onClick={onSend}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--primary)] text-white disabled:opacity-40"
         >
-          {sending ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
+          {sending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </button>
       </div>
     </div>
+  );
+}
+
+function renderMentionedContent(content: string, mentionNames: string[]) {
+  if (mentionNames.length === 0 && !/@everyone/i.test(content)) return content;
+
+  const names = ["everyone", ...mentionNames]
+    .sort((a, b) => b.length - a.length)
+    .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+  const regex = new RegExp(`(@(?:${names.join("|")}))`, "gi");
+  const parts = content.split(regex);
+
+  return parts.map((part, index) =>
+    part.startsWith("@") ? (
+      <span key={`${part}-${index}`} className="font-semibold underline decoration-current/30">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
   );
 }
 
@@ -2888,19 +3309,23 @@ function MessageBubble({
   mine,
   content,
   createdAt,
+  receipt,
+  mentionNames = [],
+  knowledgeType,
+  knowledgeId,
+  knowledgeTitle,
 }: {
   mine: boolean;
   content: string;
   createdAt: string;
+  receipt?: string;
+  mentionNames?: string[];
+  knowledgeType?: KnowledgeType | null;
+  knowledgeId?: string | null;
+  knowledgeTitle?: string | null;
 }) {
   return (
-    <div
-      className={`flex ${
-        mine
-          ? "justify-end"
-          : "justify-start"
-      }`}
-    >
+    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
         className={`
           max-w-[78%]
@@ -2909,7 +3334,6 @@ function MessageBubble({
           py-2
           text-sm
           leading-5
-
           ${
             mine
               ? "rounded-br-md bg-[var(--primary)] text-white"
@@ -2917,32 +3341,37 @@ function MessageBubble({
           }
         `}
       >
-        {content}
-
-        <div
-          className={`
-            mt-1
-            text-[9px]
-
-            ${
+        {knowledgeType && knowledgeId && knowledgeTitle ? (
+          <a
+            href={knowledgeHref(knowledgeType, knowledgeId)}
+            target="_blank"
+            rel="noreferrer"
+            className={`mb-2 flex items-center gap-2 rounded-xl border px-2.5 py-2 transition ${
               mine
-                ? "text-white/70"
-                : "text-[var(--text-muted)]"
-            }
-          `}
-        >
-          {new Date(
-            createdAt,
-          ).toLocaleTimeString(
-            [],
-            {
-              hour:
-                "2-digit",
+                ? "border-white/20 bg-white/10 hover:bg-white/15"
+                : "border-[var(--border)] bg-[var(--surface-soft)] hover:border-[var(--primary)]"
+            }`}
+          >
+            <span className={mine ? "text-white" : "text-[var(--primary)]"}>{knowledgeIcon(knowledgeType)}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs font-semibold">{knowledgeTitle}</span>
+              <span className={`block text-[9px] uppercase tracking-wide ${mine ? "text-white/65" : "text-[var(--text-muted)]"}`}>
+                {knowledgeType}
+              </span>
+            </span>
+            <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+          </a>
+        ) : null}
 
-              minute:
-                "2-digit",
-            },
-          )}
+        {content ? (
+          <div className="whitespace-pre-wrap break-words">
+            {renderMentionedContent(content, mentionNames)}
+          </div>
+        ) : null}
+
+        <div className={`mt-1 flex items-center justify-end gap-1.5 text-[9px] ${mine ? "text-white/70" : "text-[var(--text-muted)]"}`}>
+          <span>{new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+          {mine && receipt ? <span>· {receipt}</span> : null}
         </div>
       </div>
     </div>
