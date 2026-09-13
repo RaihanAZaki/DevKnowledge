@@ -65,6 +65,23 @@ type ProfileClientProps = {
   initialReputation: ReputationData;
 };
 
+
+async function readJsonSafe<T>(
+  response: Response,
+): Promise<T | null> {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 type ActivityItem = ContributionItem & {
   type:
     | "snippet"
@@ -137,16 +154,19 @@ export default function ProfileClient({
         }
 
         const data =
-          await response.json();
+          await readJsonSafe<{
+            error?: string;
+            profile?: Profile;
+          }>(response);
 
         if (!response.ok) {
           throw new Error(
             data?.error ||
-              "Failed to load profile.",
+              `Failed to load profile (${response.status}).`,
           );
         }
 
-        if (!data.profile) {
+        if (!data?.profile) {
           throw new Error(
             "Profile data was not returned by API.",
           );
@@ -196,12 +216,15 @@ export default function ProfileClient({
         );
 
       const data =
-        await response.json();
+        await readJsonSafe<{
+          error?: string;
+          profile?: Profile;
+        }>(response);
 
       if (!response.ok) {
         throw new Error(
           data?.error ||
-            "Failed to update profile.",
+            `Failed to update profile (${response.status}).`,
         );
       }
 
@@ -248,12 +271,23 @@ export default function ProfileClient({
         );
 
       const data =
-        await response.json();
+        await readJsonSafe<{
+          error?: string;
+          profile?: {
+            avatarUrl: string | null;
+          };
+        }>(response);
 
       if (!response.ok) {
         throw new Error(
           data?.error ||
-            "Unable to update profile photo.",
+            `Unable to update profile photo (${response.status}).`,
+        );
+      }
+
+      if (!data?.profile) {
+        throw new Error(
+          "Profile photo was updated, but the server did not return profile data.",
         );
       }
 
@@ -263,8 +297,7 @@ export default function ProfileClient({
             ? {
                 ...current,
                 avatarUrl:
-                  data.profile
-                    .avatarUrl,
+                  data.profile?.avatarUrl ?? null,
               }
             : current,
       );
@@ -304,12 +337,18 @@ export default function ProfileClient({
         );
 
       const data =
-        await response.json();
+        await readJsonSafe<{
+          success?: boolean;
+          error?: string;
+          profile?: {
+            avatarUrl: string | null;
+          };
+        }>(response);
 
       if (!response.ok) {
         throw new Error(
           data?.error ||
-            "Unable to remove profile photo.",
+            `Unable to remove profile photo (${response.status}).`,
         );
       }
 

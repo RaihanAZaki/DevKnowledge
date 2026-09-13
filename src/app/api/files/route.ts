@@ -1,19 +1,13 @@
-import {
-  NextResponse,
-} from "next/server";
+import { NextResponse } from "next/server";
 
-import {
-  getServerSession,
-} from "@/lib/auth";
-
+import { getServerSession } from "@/lib/auth";
 import {
   listUserFiles,
   uploadUserFile,
 } from "@/server/files/file.service";
 
 export async function GET() {
-  const user =
-    await getServerSession();
+  const user = await getServerSession();
 
   if (!user) {
     return NextResponse.json(
@@ -26,21 +20,38 @@ export async function GET() {
     );
   }
 
-  const files =
-    await listUserFiles(
+  try {
+    const files = await listUserFiles(
       user.id,
     );
 
-  return NextResponse.json({
-    files,
-  });
+    return NextResponse.json({
+      files,
+    });
+  } catch (error) {
+    console.error(
+      "LIST FILES ERROR:",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to load files.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 }
 
 export async function POST(
   request: Request,
 ) {
-  const user =
-    await getServerSession();
+  const user = await getServerSession();
 
   if (!user) {
     return NextResponse.json(
@@ -57,17 +68,14 @@ export async function POST(
     const formData =
       await request.formData();
 
-    const uploaded =
+    const file =
       formData.get("file");
 
-    if (
-      !uploaded ||
-      !(uploaded instanceof File)
-    ) {
+    if (!(file instanceof File)) {
       return NextResponse.json(
         {
           error:
-            "ZIP file is required.",
+            "File is required.",
         },
         {
           status: 400,
@@ -75,29 +83,33 @@ export async function POST(
       );
     }
 
-    const file =
+    const storedFile =
       await uploadUserFile({
         userId: user.id,
-        file: uploaded,
+        file,
       });
 
     return NextResponse.json(
       {
-        file,
+        success: true,
+        file: storedFile,
       },
       {
         status: 201,
       },
     );
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Upload failed.";
+    console.error(
+      "UPLOAD FILE ERROR:",
+      error,
+    );
 
     return NextResponse.json(
       {
-        error: message,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to upload file.",
       },
       {
         status: 400,

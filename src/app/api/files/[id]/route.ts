@@ -3,13 +3,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
 import { deleteOwnedFile } from "@/server/files/file.service";
 
+type Context = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
 export async function DELETE(
-  _request: Request,
-  context: {
-    params: Promise<{
-      id: string;
-    }>;
-  },
+  request: Request,
+  context: Context,
 ) {
   const user = await getServerSession();
 
@@ -24,9 +26,9 @@ export async function DELETE(
     );
   }
 
-  const { id } = await context.params;
-
   try {
+    const { id } = await context.params;
+
     await deleteOwnedFile(
       id,
       user.id,
@@ -41,20 +43,15 @@ export async function DELETE(
       error,
     );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unable to delete file.";
-
     return NextResponse.json(
       {
-        error: message,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to delete file.",
       },
       {
-        status:
-          message === "File not found."
-            ? 404
-            : 500,
+        status: 400,
       },
     );
   }

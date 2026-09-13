@@ -313,8 +313,8 @@ model StoredFile {
   originalName String
   pathname     String   @unique
   contentType  String
-  mimeType  String
-  extension String
+  mimeType     String?
+  extension    String?
   size         Int
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)

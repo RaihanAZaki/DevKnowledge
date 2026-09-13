@@ -425,27 +425,19 @@ export async function uploadUserFile({
   */
 
   return prisma.storedFile.create({
-    data: {
-      name:
-        removeExtension(
-          file.name,
-        ),
+  data: {
+    name: removeExtension(file.name),
+    originalName: file.name,
+    pathname: blob.pathname,
 
-      originalName:
-        file.name,
+    contentType,
+    mimeType: contentType,
+    extension: detected.extension,
 
-      pathname:
-        blob.pathname,
-
-      contentType,
-
-      size:
-        file.size,
-
-      userId,
-    },
-  });
-}
+    size: file.size,
+    userId,
+  },
+});}
 
 /*
 |--------------------------------------------------------------------------
