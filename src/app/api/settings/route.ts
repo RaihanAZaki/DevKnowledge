@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 
 import { getServerSession } from "@/lib/auth";
 import {
-  getOwnProfile,
-  updateOwnProfile,
-} from "@/server/profile/profile.service";
+  getUserSettings,
+  updateUserSettings,
+} from "@/server/settings/settings.service";
 
 /*
 |--------------------------------------------------------------------------
-| GET /api/profile
+| GET /api/settings
 |--------------------------------------------------------------------------
 */
 
@@ -27,16 +27,17 @@ export async function GET() {
   }
 
   try {
-    const profile = await getOwnProfile(
-      user.id,
-    );
+    const settings =
+      await getUserSettings(
+        user.id,
+      );
 
     return NextResponse.json({
-      profile,
+      settings,
     });
   } catch (error) {
     console.error(
-      "GET PROFILE ERROR:",
+      "GET SETTINGS ERROR:",
       error,
     );
 
@@ -45,7 +46,7 @@ export async function GET() {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to load profile.",
+            : "Unable to load settings.",
       },
       {
         status: 400,
@@ -56,7 +57,7 @@ export async function GET() {
 
 /*
 |--------------------------------------------------------------------------
-| PUT /api/profile
+| PUT /api/settings
 |--------------------------------------------------------------------------
 */
 
@@ -77,32 +78,22 @@ export async function PUT(
   }
 
   try {
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const name =
-      typeof body?.name === "string"
-        ? body.name
-        : "";
-
-    const bio =
-      typeof body?.bio === "string"
-        ? body.bio
-        : null;
-
-    const profile =
-      await updateOwnProfile({
+    const preferences =
+      await updateUserSettings({
         userId: user.id,
-        name,
-        bio,
+        data: body,
       });
 
     return NextResponse.json({
       success: true,
-      profile,
+      preferences,
     });
   } catch (error) {
     console.error(
-      "UPDATE PROFILE ERROR:",
+      "UPDATE SETTINGS ERROR:",
       error,
     );
 
@@ -111,7 +102,7 @@ export async function PUT(
         error:
           error instanceof Error
             ? error.message
-            : "Unable to update profile.",
+            : "Unable to update settings.",
       },
       {
         status: 400,

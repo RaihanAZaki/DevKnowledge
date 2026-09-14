@@ -17,6 +17,22 @@
   --warning: #b98a3f;
   --danger: #c96b6b;
   --shadow: 0 14px 40px rgba(31, 36, 48, 0.06);
+  --space-card: 1.25rem;
+  --space-row-y: 1rem;
+  --space-section: 1.5rem;
+  --space-section-small: 1rem;
+  --space-header-y: 1rem;
+  --space-quick-action-y: 0.75rem;
+}
+
+
+html[data-compact="true"] {
+  --space-card: 0.875rem;
+  --space-row-y: 0.625rem;
+  --space-section: 1rem;
+  --space-section-small: 0.75rem;
+  --space-header-y: 0.75rem;
+  --space-quick-action-y: 0.5rem;
 }
 
 .dark {

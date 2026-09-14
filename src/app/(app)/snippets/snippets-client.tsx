@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
+
 import {
   Badge,
   EmptyState,
@@ -138,25 +139,28 @@ export default function SnippetsClient({
           <Link
             href="/snippets/new"
             className="
-               inline-flex
-    h-10
-    items-center
-    justify-center
-    gap-2
-    rounded-xl
-    border
-    border-[var(--border)]
-    bg-white
-    px-4
-    text-sm
-    font-medium
-    text-[var(--text)]
-    shadow-sm
-    transition-all
-    hover:border-[var(--primary)]
-    hover:text-white
-    hover:shadow-md
-  ">
+              inline-flex
+              h-10
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              border
+              border-[var(--border)]
+              bg-white
+              px-4
+              text-sm
+              font-medium
+              text-[var(--text)]
+              shadow-sm
+              transition-all
+
+              hover:border-[var(--primary)]
+              hover:bg-[var(--primary)]
+              hover:text-white
+              hover:shadow-md
+            "
+          >
             <Plus className="h-4 w-4" />
 
             New snippet
@@ -165,15 +169,14 @@ export default function SnippetsClient({
       />
 
       {/* FILTER */}
-
       <div
         className="
-          mb-7
+          mb-[var(--space-section)]
           flex
           justify-end
           border-b
           border-[var(--border)]
-          pb-5
+          pb-[var(--space-section-small)]
         "
       >
         <div
@@ -184,7 +187,6 @@ export default function SnippetsClient({
           "
         >
           {/* SEARCH */}
-
           <div
             className={`
               flex
@@ -259,6 +261,7 @@ export default function SnippetsClient({
                     place-items-center
                     text-[var(--text-muted)]
                     transition
+
                     hover:text-[var(--text)]
                   "
                 >
@@ -269,7 +272,6 @@ export default function SnippetsClient({
           </div>
 
           {/* CATEGORY */}
-
           <div className="relative">
             <button
               type="button"
@@ -370,8 +372,9 @@ export default function SnippetsClient({
                           gap-2.5
                           rounded-lg
                           px-2
-                          py-1.5
+                          py-[var(--space-row-y)]
                           transition
+
                           hover:bg-[var(--surface-soft)]
                         "
                       >
@@ -433,6 +436,7 @@ export default function SnippetsClient({
         </div>
       </div>
 
+      {/* CONTENT */}
       {!items ? (
         <Spinner />
       ) : filtered.length ===
@@ -479,8 +483,9 @@ export default function SnippetsClient({
                     flex
                     gap-4
                     px-5
-                    py-5
+                    py-[var(--space-row-y)]
                     transition
+
                     hover:bg-[var(--surface-soft)]
                   "
                 >
@@ -516,9 +521,7 @@ export default function SnippetsClient({
                           text-[var(--primary)]
                         "
                       >
-                        {
-                          item.ticketNo
-                        }
+                        {item.ticketNo}
                       </span>
 
                       <Badge>
@@ -537,9 +540,7 @@ export default function SnippetsClient({
                         tracking-[-0.01em]
                       "
                     >
-                      {
-                        item.title
-                      }
+                      {item.title}
                     </h2>
 
                     {item.description ? (
@@ -569,9 +570,7 @@ export default function SnippetsClient({
                       "
                     >
                       <span>
-                        {
-                          item.language
-                        }
+                        {item.language}
 
                         {item.framework
                           ? ` · ${item.framework}`
@@ -602,6 +601,7 @@ export default function SnippetsClient({
                       shrink-0
                       text-[var(--text-muted)]
                       transition
+
                       group-hover:translate-x-1
                       group-hover:text-[var(--text)]
                     "

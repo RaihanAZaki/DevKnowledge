@@ -434,6 +434,78 @@ export async function acceptForumComment(
   return accepted;
 }
 
+export async function updateForumThread(
+  id: string,
+  user: SessionUser,
+  data: ForumThreadInput,
+) {
+  const current =
+    await prisma.forumThread.findUnique({
+      where: {
+        id,
+      },
+
+      select: {
+        authorId: true,
+        title: true,
+      },
+    });
+
+  if (!current) {
+    throw new AppError(
+      "Discussion not found.",
+      404,
+    );
+  }
+
+  if (
+    !canManage(
+      current.authorId,
+      user,
+    )
+  ) {
+    throw new AppError(
+      "Forbidden.",
+      403,
+    );
+  }
+
+  const thread =
+    await prisma.forumThread.update({
+      where: {
+        id,
+      },
+
+      data: {
+        title: data.title,
+        content: data.content,
+        category: data.category,
+        tags: data.tags,
+      },
+
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+  await createAuditLog({
+    userId: user.id,
+    action: "UPDATE",
+    entity: "FORUM",
+    entityId: thread.id,
+    description:
+      `Updated discussion "${thread.title}".`,
+  });
+
+  return thread;
+}
+
 
 export async function deleteForumComment(
   threadId: string,

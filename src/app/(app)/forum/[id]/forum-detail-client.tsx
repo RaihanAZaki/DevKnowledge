@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import {
   ArrowLeft,
   CheckCircle2,
   LoaderCircle,
   MessageSquareText,
+  Pencil,
   Send,
   Trash2,
 } from "lucide-react";
@@ -29,14 +30,10 @@ import {
   initials,
 } from "@/lib/format";
 
-
 type Comment = {
   id: string;
-
   content: string;
-
   isAccepted: boolean;
-
   createdAt: string;
 
   author: {
@@ -46,15 +43,13 @@ type Comment = {
   };
 };
 
-
 type Thread = {
   id: string;
-
   title: string;
-
   content: string;
 
-  category: keyof typeof CATEGORY_LABEL;
+  category:
+    keyof typeof CATEGORY_LABEL;
 
   tags: string[];
 
@@ -63,34 +58,23 @@ type Thread = {
   createdAt: string;
 
   author: {
-    id?: string;
+    id: string;
     name: string;
-    role?: string;
+    role: string;
   };
 
   comments: Comment[];
 };
 
-
 type ForumData = {
   thread: Thread;
 
-  /**
-   * Owner / Admin / Moderator.
-   * Dipakai untuk delete/moderation.
-   */
   canManage: boolean;
 
-  /**
-   * Khusus pembuat thread.
-   * Hanya ini yang boleh memberikan
-   * Accepted Solution.
-   */
   isThreadOwner: boolean;
 
   currentUserId: string;
 };
-
 
 type Props = {
   id: string;
@@ -98,37 +82,51 @@ type Props = {
   initialData: ForumData;
 };
 
-
 export default function ForumDetailClient({
   id,
   initialData,
 }: Props) {
-  const router = useRouter();
+  const router =
+    useRouter();
 
   const [data, setData] =
-    useState<ForumData>(initialData);
+    useState<ForumData>(
+      initialData,
+    );
 
-  const [replyText, setReplyText] =
+  const [
+    replyText,
+    setReplyText,
+  ] =
     useState("");
 
-  const [sending, setSending] =
+  const [
+    sending,
+    setSending,
+  ] =
     useState(false);
 
   const [
     acceptingCommentId,
     setAcceptingCommentId,
   ] =
-    useState<string | null>(null);
+    useState<string | null>(
+      null,
+    );
 
   const [
     deleteTarget,
     setDeleteTarget,
   ] =
-    useState<string | null>(null);
+    useState<string | null>(
+      null,
+    );
 
-  const [deleting, setDeleting] =
+  const [
+    deleting,
+    setDeleting,
+  ] =
     useState(false);
-
 
   async function load() {
     const response =
@@ -143,12 +141,11 @@ export default function ForumDetailClient({
       return;
     }
 
-    const json: ForumData =
-      await response.json();
+    const json =
+      (await response.json()) as ForumData;
 
     setData(json);
   }
-
 
   async function reply(
     event:
@@ -170,16 +167,18 @@ export default function ForumDetailClient({
         await fetch(
           `/api/forum/${id}/comments`,
           {
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
               "Content-Type":
                 "application/json",
             },
 
-            body: JSON.stringify({
-              content,
-            }),
+            body:
+              JSON.stringify({
+                content,
+              }),
           },
         );
 
@@ -191,19 +190,18 @@ export default function ForumDetailClient({
 
       await load();
 
-      // refresh server component /
-      // reputation card
       router.refresh();
     } finally {
       setSending(false);
     }
   }
 
-
   async function accept(
     commentId: string,
   ) {
-    if (!data.isThreadOwner) {
+    if (
+      !data.isThreadOwner
+    ) {
       return;
     }
 
@@ -216,7 +214,8 @@ export default function ForumDetailClient({
         await fetch(
           `/api/forum/${id}/comments/${commentId}/accept`,
           {
-            method: "PUT",
+            method:
+              "PUT",
           },
         );
 
@@ -226,7 +225,6 @@ export default function ForumDetailClient({
 
       await load();
 
-      // Reputation +10 ikut refresh
       router.refresh();
     } finally {
       setAcceptingCommentId(
@@ -234,7 +232,6 @@ export default function ForumDetailClient({
       );
     }
   }
-
 
   async function deleteComment() {
     if (!deleteTarget) {
@@ -248,7 +245,8 @@ export default function ForumDetailClient({
         await fetch(
           `/api/forum/${id}/comments/${deleteTarget}`,
           {
-            method: "DELETE",
+            method:
+              "DELETE",
           },
         );
 
@@ -256,7 +254,9 @@ export default function ForumDetailClient({
         return;
       }
 
-      setDeleteTarget(null);
+      setDeleteTarget(
+        null,
+      );
 
       await load();
 
@@ -265,7 +265,6 @@ export default function ForumDetailClient({
       setDeleting(false);
     }
   }
-
 
   async function removeThread() {
     const confirmed =
@@ -281,21 +280,22 @@ export default function ForumDetailClient({
       await fetch(
         `/api/forum/${id}`,
         {
-          method: "DELETE",
+          method:
+            "DELETE",
         },
       );
 
     if (response.ok) {
-      router.push("/forum");
+      router.push(
+        "/forum",
+      );
 
       router.refresh();
     }
   }
 
-
   const thread =
     data.thread;
-
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -304,13 +304,14 @@ export default function ForumDetailClient({
       <Link
         href="/forum"
         className="
-          mb-7
+          mb-[var(--space-section)]
           inline-flex
           items-center
           gap-2
           text-sm
           text-[var(--text-soft)]
           transition
+
           hover:text-[var(--text)]
         "
       >
@@ -318,7 +319,6 @@ export default function ForumDetailClient({
 
         Forum
       </Link>
-
 
       {/* THREAD */}
 
@@ -328,8 +328,7 @@ export default function ForumDetailClient({
           border
           border-[var(--border)]
           bg-[var(--surface)]
-          p-6
-          sm:p-8
+          p-[var(--space-card)]
         "
       >
         <div
@@ -345,6 +344,7 @@ export default function ForumDetailClient({
               className="
                 flex
                 flex-wrap
+                items-center
                 gap-2
               "
             >
@@ -357,8 +357,10 @@ export default function ForumDetailClient({
               </Badge>
 
               {thread.comments.some(
-                (item) =>
-                  item.isAccepted,
+                (
+                  comment,
+                ) =>
+                  comment.isAccepted,
               ) && (
                 <Badge tone="success">
                   <CheckCircle2
@@ -374,7 +376,6 @@ export default function ForumDetailClient({
               )}
             </div>
 
-
             <h1
               className="
                 mt-4
@@ -385,7 +386,6 @@ export default function ForumDetailClient({
             >
               {thread.title}
             </h1>
-
 
             <p
               className="
@@ -399,7 +399,6 @@ export default function ForumDetailClient({
               {thread.content}
             </p>
 
-
             <div
               className="
                 mt-5
@@ -408,7 +407,10 @@ export default function ForumDetailClient({
               "
             >
               Asked by{" "}
-              {thread.author.name}
+              {
+                thread.author
+                  .name
+              }
 
               {" · "}
 
@@ -416,60 +418,100 @@ export default function ForumDetailClient({
                 thread.createdAt,
               )}
             </div>
-          </div>
 
-
-          {data.canManage && (
-            <GhostButton
-              onClick={
-                removeThread
-              }
-              className="text-red-500"
-              title="Delete discussion"
-            >
-              <Trash2 className="h-4 w-4" />
-            </GhostButton>
-          )}
-        </div>
-
-
-        {thread.tags.length >
-          0 && (
-          <div
-            className="
-              mt-5
-              flex
-              flex-wrap
-              gap-2
-            "
-          >
-            {thread.tags.map(
-              (tag) => (
-                <span
-                  key={tag}
-                  className="
-                    rounded-lg
-                    bg-[var(--surface-soft)]
-                    px-2.5
-                    py-1
-                    text-xs
-                    text-[var(--text-muted)]
-                  "
-                >
-                  #{tag}
-                </span>
-              ),
+            {thread.tags.length >
+              0 && (
+              <div
+                className="
+                  mt-5
+                  flex
+                  flex-wrap
+                  gap-2
+                "
+              >
+                {thread.tags.map(
+                  (tag) => (
+                    <span
+                      key={
+                        tag
+                      }
+                      className="
+                        rounded-lg
+                        bg-[var(--surface-soft)]
+                        px-2.5
+                        py-1
+                        text-xs
+                        text-[var(--text-muted)]
+                      "
+                    >
+                      #{tag}
+                    </span>
+                  ),
+                )}
+              </div>
             )}
           </div>
-        )}
+
+          {/* EDIT + DELETE */}
+
+          {data.canManage && (
+            <div
+              className="
+                flex
+                shrink-0
+                items-center
+                gap-2
+              "
+            >
+              <Link
+                href={`/forum/${id}/edit`}
+                className="
+                  inline-flex
+                  h-10
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  border
+                  border-[var(--border)]
+                  bg-[var(--surface)]
+                  px-3.5
+                  text-sm
+                  font-medium
+                  text-[var(--text-soft)]
+                  transition
+
+                  hover:border-[var(--primary)]
+                  hover:bg-[var(--primary-soft)]
+                  hover:text-[var(--primary)]
+                "
+              >
+                <Pencil className="h-4 w-4" />
+
+                Edit
+              </Link>
+
+              <GhostButton
+                onClick={
+                  removeThread
+                }
+                className="
+                  text-red-500
+                "
+                title="Delete discussion"
+              >
+                <Trash2 className="h-4 w-4" />
+              </GhostButton>
+            </div>
+          )}
+        </div>
       </section>
 
-
-      {/* REPLIES TITLE */}
+      {/* REPLIES HEADER */}
 
       <div
         className="
-          mt-7
+          mt-[var(--space-section)]
           flex
           items-center
           gap-2
@@ -489,21 +531,23 @@ export default function ForumDetailClient({
             font-semibold
           "
         >
-          {thread.comments.length}{" "}
-          {thread.comments.length ===
-          1
+          {
+            thread.comments
+              .length
+          }{" "}
+          {thread.comments
+            .length === 1
             ? "reply"
             : "replies"}
         </h2>
       </div>
-
 
       {/* COMMENTS */}
 
       <div
         className="
           mt-3
-          space-y-3
+          space-y-[var(--space-section-small)]
         "
       >
         {thread.comments.map(
@@ -519,20 +563,22 @@ export default function ForumDetailClient({
 
             return (
               <article
-                key={comment.id}
+                key={
+                  comment.id
+                }
                 className={`
                   rounded-2xl
                   border
                   bg-[var(--surface)]
-                  p-5
+                  p-[var(--space-card)]
                   transition
 
                   ${
                     comment.isAccepted
                       ? `
-                        border-emerald-300/70
+                        border-emerald-400/70
                         ring-1
-                        ring-emerald-200/40
+                        ring-emerald-400/30
                       `
                       : `
                         border-[var(--border)]
@@ -540,9 +586,12 @@ export default function ForumDetailClient({
                   }
                 `}
               >
-                <div className="flex gap-3">
-                  {/* AVATAR */}
-
+                <div
+                  className="
+                    flex
+                    gap-3
+                  "
+                >
                   <div
                     className="
                       grid
@@ -557,15 +606,13 @@ export default function ForumDetailClient({
                     "
                   >
                     {initials(
-                      comment.author
+                      comment
+                        .author
                         .name,
                     )}
                   </div>
 
-
                   <div className="min-w-0 flex-1">
-                    {/* COMMENT HEADER */}
-
                     <div
                       className="
                         flex
@@ -596,7 +643,6 @@ export default function ForumDetailClient({
                           }
                         </span>
 
-
                         <span
                           className="
                             text-xs
@@ -608,7 +654,6 @@ export default function ForumDetailClient({
                           )}
                         </span>
 
-
                         {comment.isAccepted && (
                           <Badge tone="success">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -619,9 +664,6 @@ export default function ForumDetailClient({
                         )}
                       </div>
 
-
-                      {/* ACTIONS */}
-
                       <div
                         className="
                           flex
@@ -630,10 +672,7 @@ export default function ForumDetailClient({
                           gap-1.5
                         "
                       >
-                        {/* ACCEPT SOLUTION
-
-                            HANYA PEMILIK THREAD
-                        */}
+                        {/* ACCEPT */}
 
                         {data.isThreadOwner &&
                           !comment.isAccepted && (
@@ -678,8 +717,7 @@ export default function ForumDetailClient({
                             </button>
                           )}
 
-
-                        {/* ACCEPTED INDICATOR */}
+                        {/* ACCEPTED */}
 
                         {comment.isAccepted && (
                           <div
@@ -692,7 +730,7 @@ export default function ForumDetailClient({
                               justify-center
                               rounded-lg
                               border
-                              border-emerald-300
+                              border-emerald-400
                               bg-emerald-50
                               text-emerald-600
 
@@ -703,8 +741,7 @@ export default function ForumDetailClient({
                           </div>
                         )}
 
-
-                        {/* DELETE */}
+                        {/* DELETE COMMENT */}
 
                         {canDelete && (
                           <button
@@ -737,9 +774,6 @@ export default function ForumDetailClient({
                       </div>
                     </div>
 
-
-                    {/* COMMENT */}
-
                     <p
                       className="
                         mt-3
@@ -749,11 +783,10 @@ export default function ForumDetailClient({
                         text-[var(--text-soft)]
                       "
                     >
-                      {comment.content}
+                      {
+                        comment.content
+                      }
                     </p>
-
-
-                    {/* ACCEPTED MESSAGE */}
 
                     {comment.isAccepted && (
                       <div
@@ -788,18 +821,17 @@ export default function ForumDetailClient({
         )}
       </div>
 
-
       {/* REPLY FORM */}
 
       <form
         onSubmit={reply}
         className="
-          mt-5
+          mt-[var(--space-section)]
           rounded-2xl
           border
           border-[var(--border)]
           bg-[var(--surface)]
-          p-5
+          p-[var(--space-card)]
         "
       >
         <div
@@ -812,19 +844,20 @@ export default function ForumDetailClient({
           Add your reply
         </div>
 
-
         <Textarea
           value={replyText}
-          onChange={(event) =>
+          onChange={(
+            event,
+          ) =>
             setReplyText(
-              event.target.value,
+              event.target
+                .value,
             )
           }
           className="min-h-[150px]"
           placeholder="Share the reasoning, fix, or trade-off..."
           required
         />
-
 
         <div
           className="
@@ -833,7 +866,11 @@ export default function ForumDetailClient({
             justify-end
           "
         >
-          <Button disabled={sending}>
+          <Button
+            disabled={
+              sending
+            }
+          >
             {sending ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
             ) : (
@@ -844,7 +881,6 @@ export default function ForumDetailClient({
           </Button>
         </div>
       </form>
-
 
       {/* DELETE COMMENT MODAL */}
 
@@ -874,7 +910,12 @@ export default function ForumDetailClient({
               shadow-xl
             "
           >
-            <div className="flex gap-3">
+            <div
+              className="
+                flex
+                gap-3
+              "
+            >
               <div
                 className="
                   grid
@@ -890,10 +931,10 @@ export default function ForumDetailClient({
                 <Trash2 className="h-5 w-5" />
               </div>
 
-
               <div>
                 <h3 className="font-semibold">
-                  Delete comment?
+                  Delete
+                  comment?
                 </h3>
 
                 <p
@@ -903,12 +944,12 @@ export default function ForumDetailClient({
                     text-[var(--text-soft)]
                   "
                 >
-                  This action cannot
-                  be undone.
+                  This action
+                  cannot be
+                  undone.
                 </p>
               </div>
             </div>
-
 
             <div
               className="
@@ -920,7 +961,9 @@ export default function ForumDetailClient({
             >
               <button
                 type="button"
-                disabled={deleting}
+                disabled={
+                  deleting
+                }
                 onClick={() =>
                   setDeleteTarget(
                     null,
@@ -934,16 +977,18 @@ export default function ForumDetailClient({
                   py-2
                   text-sm
                   transition
+
                   hover:bg-[var(--surface-soft)]
                 "
               >
                 Cancel
               </button>
 
-
               <button
                 type="button"
-                disabled={deleting}
+                disabled={
+                  deleting
+                }
                 onClick={
                   deleteComment
                 }
@@ -959,6 +1004,7 @@ export default function ForumDetailClient({
                   font-medium
                   text-white
                   transition
+
                   hover:bg-red-600
                   disabled:opacity-50
                 "
