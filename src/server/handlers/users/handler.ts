@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest) {
     const parsed = updateProfileSchema.safeParse(await request.json());
     if (!parsed.success) return jsonError("Invalid profile data.", 422, parsed.error.flatten());
     const user = await updateUserProfile(current.id, parsed.data);
-    const token = await signSession({ id: user.id, name: user.name, email: user.email, role: user.role });
+    const token = await signSession({ id: user.id, name: user.name, email: user.email, role: user.role }, current.sessionId);
     const response = NextResponse.json({ user });
     response.cookies.set(AUTH_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
     return response;

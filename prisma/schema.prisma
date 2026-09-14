@@ -54,6 +54,7 @@ model User {
   lastSeenAt             DateTime?
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
+  authSessions           AuthSession[]
 }
 
 model CodeSnippet {
@@ -81,21 +82,40 @@ model CodeSnippet {
   @@index([createdAt])
 }
 
+model AuthSession {
+  id              String         @id @default(cuid())
+  userId          String
+  userAgent       String?
+  ipAddress       String?
+  lastSeenAt      DateTime       @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentation   Documentation? @relation(fields: [documentationId], references: [id])
+  documentationId String?
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([lastSeenAt])
+}
+
 model Documentation {
-  id          String             @id @default(cuid())
-  title       String
-  excerpt     String?
-  content     String             @db.Text
-  language    String
-  category    KnowledgeCategory  @default(GENERAL)
-  tags        String[]           @default([])
-  isPublished Boolean            @default(true)
-  visibility  DocumentVisibility @default(PUBLIC)
-  authorId    String
-  sharedWith  DocumentShare[]
-  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id           String             @id @default(cuid())
+  title        String
+  excerpt      String?
+  content      String             @db.Text
+  language     String
+  category     KnowledgeCategory  @default(GENERAL)
+  tags         String[]           @default([])
+  isPublished  Boolean            @default(true)
+  visibility   DocumentVisibility @default(PUBLIC)
+  authorId     String
+  sharedWith   DocumentShare[]
+  authSessions AuthSession[]
+  author       User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@index([language])
   @@index([category])
@@ -233,17 +253,16 @@ model Friendship {
 }
 
 model DirectMessage {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   senderId       String
   receiverId     String
-  content        String   @db.Text
-  isRead         Boolean  @default(false)
+  content        String    @db.Text
+  isRead         Boolean   @default(false)
   readAt         DateTime?
   knowledgeType  String?
   knowledgeId    String?
   knowledgeTitle String?
-  createdAt      DateTime @default(now())
-
+  createdAt      DateTime  @default(now())
 
   sender User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
 
@@ -330,7 +349,7 @@ model ChatGroup {
   id          String  @id @default(cuid())
   name        String
   description String?
-  avatarUrl   String?  @db.Text
+  avatarUrl   String? @db.Text
 
   ownerId String
   owner   User   @relation("OwnedChatGroups", fields: [ownerId], references: [id], onDelete: Cascade)
@@ -352,11 +371,11 @@ model ChatGroupMember {
   group   ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   role GroupRole @default(MEMBER)
 
-  joinedAt  DateTime @default(now())
+  joinedAt   DateTime @default(now())
   lastReadAt DateTime @default(now())
 
   @@unique([groupId, userId])
@@ -365,13 +384,12 @@ model ChatGroupMember {
 }
 
 model ChatGroupMessage {
-  id             String @id @default(cuid())
-  content        String @db.Text
-  kind           String @default("MESSAGE")
+  id             String  @id @default(cuid())
+  content        String  @db.Text
+  kind           String  @default("MESSAGE")
   knowledgeType  String?
   knowledgeId    String?
   knowledgeTitle String?
-
 
   groupId String
   group   ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -399,21 +417,21 @@ enum AppTheme {
 }
 
 model UserPreference {
-  id                     String   @id @default(cuid())
-  userId                 String   @unique
-  theme                  AppTheme @default(SYSTEM)
-  compactMode            Boolean  @default(false)
-  notifyFriendRequests   Boolean  @default(true)
-  notifyMentions         Boolean  @default(true)
-  notifyGroupMessages    Boolean  @default(true)
-  notifyForumReplies     Boolean  @default(true)
-  notifyAcceptedAnswers  Boolean  @default(true)
-  notifyReputation       Boolean  @default(true)
-  showOnlineStatus       Boolean  @default(true)
-  readReceipts           Boolean  @default(true)
-  messageSounds          Boolean  @default(false)
-  desktopNotifications   Boolean  @default(false)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  theme                 AppTheme @default(SYSTEM)
+  compactMode           Boolean  @default(false)
+  notifyFriendRequests  Boolean  @default(true)
+  notifyMentions        Boolean  @default(true)
+  notifyGroupMessages   Boolean  @default(true)
+  notifyForumReplies    Boolean  @default(true)
+  notifyAcceptedAnswers Boolean  @default(true)
+  notifyReputation      Boolean  @default(true)
+  showOnlineStatus      Boolean  @default(true)
+  readReceipts          Boolean  @default(true)
+  messageSounds         Boolean  @default(false)
+  desktopNotifications  Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

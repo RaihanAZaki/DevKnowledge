@@ -20,3 +20,22 @@ export async function registerUser(input: { name: string; email: string; passwor
     select: { id: true, name: true, email: true, role: true },
   });
 }
+
+export function getRequestIp(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]?.trim() || null;
+  return request.headers.get("x-real-ip")?.trim() || null;
+}
+
+export async function createAuthSession(userId: string, request: Request) {
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  return prisma.authSession.create({
+    data: {
+      userId,
+      userAgent: request.headers.get("user-agent")?.slice(0, 1000) || null,
+      ipAddress: getRequestIp(request),
+      expiresAt,
+    },
+    select: { id: true, expiresAt: true },
+  });
+}

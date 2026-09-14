@@ -1,20 +1,52 @@
 "use client";
 
-import Link from "next/link";
+import {
+  FormEvent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
   Bell,
   Check,
-  ChevronRight,
+  Eye,
+  EyeOff,
+  KeyRound,
   Laptop,
   LoaderCircle,
   LockKeyhole,
-  MessageCircleMore,
-  MonitorCog,
+  LogOut,
+  MessageSquare,
+  MonitorSmartphone,
+  Moon,
+  Palette,
   ShieldCheck,
-  Sparkles,
+  Sun,
   UserRound,
+  X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+
+import { PageHeader } from "@/components/page-header";
+
+import {
+  Badge,
+  Button,
+  GhostButton,
+  Input,
+  Label,
+  Textarea,
+} from "@/components/ui";
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  bio?: string | null;
+};
 
 type Theme =
   | "SYSTEM"
@@ -22,8 +54,9 @@ type Theme =
   | "DARK";
 
 type Preferences = {
-  theme: Theme;
+  id: string;
 
+  theme: Theme;
   compactMode: boolean;
 
   notifyFriendRequests: boolean;
@@ -37,77 +70,311 @@ type Preferences = {
   readReceipts: boolean;
   messageSounds: boolean;
   desktopNotifications: boolean;
+
+  createdAt: string;
+  updatedAt: string;
 };
 
-type SettingsClientProps = {
-  initialData: {
-    account: {
-      email: string;
-      role: string;
-    };
-
-    preferences: Preferences;
-  };
+type Session = {
+  id: string;
+  browser: string;
+  device: string;
+  ipAddress?: string | null;
+  lastSeenAt: string;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
 };
 
-type ToggleProps = {
-  checked: boolean;
+type SettingsTab =
+  | "account"
+  | "appearance"
+  | "notifications"
+  | "messages";
 
-  disabled?: boolean;
+type PreferenceKey =
+  | "theme"
+  | "compactMode"
+  | "notifyFriendRequests"
+  | "notifyMentions"
+  | "notifyGroupMessages"
+  | "notifyForumReplies"
+  | "notifyAcceptedAnswers"
+  | "notifyReputation"
+  | "showOnlineStatus"
+  | "readReceipts"
+  | "messageSounds"
+  | "desktopNotifications";
 
-  onChange: (
-    checked: boolean,
-  ) => void;
-};
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(
+    undefined,
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  ).format(new Date(value));
+}
+
+function PasswordInput({
+  label,
+  value,
+  onChange,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+}) {
+  const [visible, setVisible] =
+    useState(false);
+
+  return (
+    <div>
+      <Label>{label}</Label>
+
+      <div className="relative">
+        <Input
+          type={
+            visible
+              ? "text"
+              : "password"
+          }
+          value={value}
+          onChange={(event) =>
+            onChange(
+              event.target.value,
+            )
+          }
+          autoComplete={autoComplete}
+          className="pr-11"
+        />
+
+        <button
+          type="button"
+          aria-label={
+            visible
+              ? "Hide password"
+              : "Show password"
+          }
+          onClick={() =>
+            setVisible(
+              (current) =>
+                !current,
+            )
+          }
+          className="
+            absolute right-2 top-1/2
+            grid h-8 w-8
+            -translate-y-1/2
+            place-items-center
+            rounded-lg
+            text-[var(--text-muted)]
+            transition
+            hover:bg-[var(--surface-hover)]
+            hover:text-[var(--text)]
+          "
+        >
+          {visible ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Modal({
+  open,
+  title,
+  description,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleKeyDown(
+      event: KeyboardEvent,
+    ) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown,
+    );
+
+    return () =>
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown,
+      );
+  }, [open, onClose]);
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div
+      className="
+        fixed inset-0 z-[100]
+        flex items-center
+        justify-center
+        bg-black/50
+        p-4
+        backdrop-blur-[2px]
+      "
+      onMouseDown={(event) => {
+        if (
+          event.currentTarget ===
+          event.target
+        ) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="
+          max-h-[88vh]
+          w-full
+          max-w-lg
+          overflow-y-auto
+          rounded-2xl
+          border
+          border-[var(--border)]
+          bg-[var(--surface)]
+          shadow-2xl
+        "
+      >
+        <div
+          className="
+            flex items-start
+            justify-between
+            gap-4
+            border-b
+            border-[var(--border)]
+            px-5 py-4
+          "
+        >
+          <div>
+            <h2
+              className="
+                text-base
+                font-semibold
+                text-[var(--text)]
+              "
+            >
+              {title}
+            </h2>
+
+            <p
+              className="
+                mt-1
+                text-xs
+                leading-5
+                text-[var(--text-muted)]
+              "
+            >
+              {description}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="
+              grid h-8 w-8
+              shrink-0
+              place-items-center
+              rounded-lg
+              text-[var(--text-muted)]
+              transition
+              hover:bg-[var(--surface-hover)]
+              hover:text-[var(--text)]
+            "
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {children}
+      </div>
+    </div>
+  );
+}
 
 function Toggle({
   checked,
-  disabled = false,
+  disabled,
   onChange,
-}: ToggleProps) {
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (
+    checked: boolean,
+  ) => void;
+}) {
   return (
     <button
       type="button"
-      role="switch"
-      aria-checked={checked}
       disabled={disabled}
+      aria-pressed={checked}
       onClick={() =>
         onChange(!checked)
       }
       className={`
         relative
-        inline-flex
-        h-6
-        w-11
+        h-6 w-11
         shrink-0
         rounded-full
+        border
         transition
+        disabled:cursor-not-allowed
+        disabled:opacity-50
 
         ${
           checked
-            ? "bg-[var(--primary)]"
-            : "bg-[var(--border-strong)]"
+            ? `
+              border-[var(--primary)]
+              bg-[var(--primary)]
+            `
+            : `
+              border-[var(--border)]
+              bg-[var(--surface-soft)]
+            `
         }
-
-        disabled:cursor-not-allowed
-        disabled:opacity-50
       `}
     >
       <span
         className={`
-          absolute
-          top-0.5
-          h-5
-          w-5
+          absolute top-1/2
+          h-4 w-4
+          -translate-y-1/2
           rounded-full
-          bg-[var(--surface)]
+          bg-white
           shadow-sm
-          transition-transform
+          transition-all
 
           ${
             checked
-              ? "translate-x-[22px]"
-              : "translate-x-0.5"
+              ? "left-[22px]"
+              : "left-[3px]"
           }
         `}
       />
@@ -121,54 +388,59 @@ function SettingRow({
   children,
 }: {
   title: string;
-  description?: string;
-  children: React.ReactNode;
+  description: string;
+  children: ReactNode;
 }) {
   return (
     <div
       className="
-        flex
-        items-center
+        flex items-center
         justify-between
-        gap-[var(--space-card-sm)]
+        gap-6
         border-b
         border-[var(--border)]
-        px-[var(--space-inline)]
-        py-[var(--space-row-y)]
+        px-5 py-4
         last:border-b-0
-
-        sm:px-[var(--space-card)]
       "
     >
       <div className="min-w-0">
-        <div className="text-sm font-medium">
+        <p
+          className="
+            text-sm
+            font-medium
+            text-[var(--text)]
+          "
+        >
           {title}
-        </div>
+        </p>
 
-        {description ? (
-          <div className="mt-1 max-w-lg text-xs leading-5 text-[var(--text-muted)]">
-            {description}
-          </div>
-        ) : null}
+        <p
+          className="
+            mt-1
+            text-xs
+            leading-5
+            text-[var(--text-muted)]
+          "
+        >
+          {description}
+        </p>
       </div>
 
-      <div className="shrink-0">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }
 
 function Section({
-  icon: Icon,
+  icon,
   title,
   description,
   children,
 }: {
-  icon: React.ElementType;
+  icon: ReactNode;
   title: string;
-  description?: string;
-  children: React.ReactNode;
+  description: string;
+  children: ReactNode;
 }) {
   return (
     <section
@@ -182,22 +454,16 @@ function Section({
     >
       <div
         className="
-          flex
-          items-start
+          flex items-center
           gap-3
           border-b
           border-[var(--border)]
-          px-[var(--space-inline)]
-          py-[var(--space-row-y)]
-
-          sm:px-[var(--space-card)]
+          px-5 py-4
         "
       >
-        <div
+        <span
           className="
-            grid
-            h-9
-            w-9
+            grid h-10 w-10
             shrink-0
             place-items-center
             rounded-xl
@@ -205,19 +471,28 @@ function Section({
             text-[var(--primary)]
           "
         >
-          <Icon className="h-4 w-4" />
-        </div>
+          {icon}
+        </span>
 
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold">
+        <div>
+          <h2
+            className="
+              text-sm
+              font-semibold
+            "
+          >
             {title}
           </h2>
 
-          {description ? (
-            <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
-              {description}
-            </p>
-          ) : null}
+          <p
+            className="
+              mt-0.5
+              text-xs
+              text-[var(--text-muted)]
+            "
+          >
+            {description}
+          </p>
         </div>
       </div>
 
@@ -226,75 +501,213 @@ function Section({
   );
 }
 
-async function readJsonSafe<T>(
-  response: Response,
-): Promise<T | null> {
-  const text =
-    await response.text();
-
-  if (!text.trim()) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(
-      text,
-    ) as T;
-  } catch {
-    return null;
-  }
-}
-
 export default function SettingsClient({
-  initialData,
-}: SettingsClientProps) {
+  initialUser,
+  initialPreferences,
+}: {
+  initialUser: User;
+  initialPreferences: Preferences;
+}) {
+  const [activeTab, setActiveTab] =
+    useState<SettingsTab>(
+      "account",
+    );
+
+  const [user, setUser] =
+    useState<User>(
+      initialUser,
+    );
+
   const [
     preferences,
     setPreferences,
   ] = useState<Preferences>(
-    initialData.preferences,
+    initialPreferences,
   );
 
   const [
-    savingKey,
-    setSavingKey,
-  ] =
-    useState<
-      keyof Preferences | null
-    >(null);
+    preferenceSaving,
+    setPreferenceSaving,
+  ] = useState<
+    PreferenceKey | null
+  >(null);
 
   const [
-    saved,
-    setSaved,
+    preferenceError,
+    setPreferenceError,
+  ] = useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [saved, setSaved] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [
+    passwordOpen,
+    setPasswordOpen,
   ] = useState(false);
 
   const [
-    error,
-    setError,
-  ] = useState<string | null>(
-    null,
-  );
+    currentPassword,
+    setCurrentPassword,
+  ] = useState("");
 
-  /*
-  |--------------------------------------------------------------------------
-  | Update preference
-  |--------------------------------------------------------------------------
-  */
+  const [
+    newPassword,
+    setNewPassword,
+  ] = useState("");
+
+  const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState("");
+
+  const [
+    passwordLoading,
+    setPasswordLoading,
+  ] = useState(false);
+
+  const [
+    passwordError,
+    setPasswordError,
+  ] = useState("");
+
+  const [
+    passwordSuccess,
+    setPasswordSuccess,
+  ] = useState("");
+
+  const [
+    sessionsOpen,
+    setSessionsOpen,
+  ] = useState(false);
+
+  const [sessions, setSessions] =
+    useState<Session[]>([]);
+
+  const [
+    sessionsLoading,
+    setSessionsLoading,
+  ] = useState(false);
+
+  const [
+    sessionError,
+    setSessionError,
+  ] = useState("");
+
+  const [
+    sessionAction,
+    setSessionAction,
+  ] = useState<
+    string | null
+  >(null);
+
+  const tabs: {
+    id: SettingsTab;
+    label: string;
+    icon: ReactNode;
+  }[] = [
+    {
+      id: "account",
+      label: "Account",
+      icon: (
+        <UserRound className="h-4 w-4" />
+      ),
+    },
+    {
+      id: "appearance",
+      label: "Appearance",
+      icon: (
+        <Palette className="h-4 w-4" />
+      ),
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: (
+        <Bell className="h-4 w-4" />
+      ),
+    },
+    {
+      id: "messages",
+      label:
+        "Messages & Security",
+      icon: (
+        <MessageSquare className="h-4 w-4" />
+      ),
+    },
+  ];
+
+  useEffect(() => {
+    applyTheme(
+      preferences.theme,
+    );
+  }, [preferences.theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.compact =
+      preferences.compactMode
+        ? "true"
+        : "false";
+  }, [
+    preferences.compactMode,
+  ]);
+
+  function applyTheme(
+    theme: Theme,
+  ) {
+    const root =
+      document.documentElement;
+
+    if (theme === "DARK") {
+      root.classList.add("dark");
+      root.dataset.theme =
+        "dark";
+
+      return;
+    }
+
+    if (theme === "LIGHT") {
+      root.classList.remove(
+        "dark",
+      );
+
+      root.dataset.theme =
+        "light";
+
+      return;
+    }
+
+    const dark =
+      window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+
+    root.classList.toggle(
+      "dark",
+      dark,
+    );
+
+    root.dataset.theme =
+      dark
+        ? "dark"
+        : "light";
+  }
 
   async function updatePreference<
-    K extends keyof Preferences,
+    K extends PreferenceKey,
   >(
     key: K,
     value: Preferences[K],
   ) {
-    const previousValue =
+    const previous =
       preferences[key];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Optimistic UI
-    |--------------------------------------------------------------------------
-    */
+    setPreferenceError("");
 
     setPreferences(
       (current) => ({
@@ -303,9 +716,7 @@ export default function SettingsClient({
       }),
     );
 
-    setSavingKey(key);
-    setError(null);
-    setSaved(false);
+    setPreferenceSaving(key);
 
     try {
       const response =
@@ -326,337 +737,725 @@ export default function SettingsClient({
         );
 
       const data =
-        await readJsonSafe<{
-          success?: boolean;
-
-          error?: string;
-
-          preferences?: Preferences;
-        }>(response);
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data?.error ||
-            `Unable to save setting (${response.status}).`,
+          data.error ??
+            "Unable to save preference.",
         );
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Use server state when available
-      |--------------------------------------------------------------------------
-      */
-
-      if (data?.preferences) {
+      if (data.preferences) {
         setPreferences(
           data.preferences,
         );
       }
+    } catch (err) {
+      setPreferences(
+        (current) => ({
+          ...current,
+          [key]: previous,
+        }),
+      );
+
+      setPreferenceError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save preference.",
+      );
+    } finally {
+      setPreferenceSaving(
+        null,
+      );
+    }
+  }
+
+  async function saveProfile(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setLoading(true);
+    setError("");
+    setSaved(false);
+
+    try {
+      const response =
+        await fetch(
+          "/api/users/me",
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              name: user.name,
+              bio: user.bio,
+            }),
+          },
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Unable to save profile.",
+        );
+      }
+
+      setUser(data.user);
 
       setSaved(true);
 
       window.setTimeout(
-        () => {
-          setSaved(false);
-        },
-        1800,
+        () =>
+          setSaved(false),
+        2200,
       );
-
-      /*
-      |--------------------------------------------------------------------------
-      | Notify the rest of the app
-      |--------------------------------------------------------------------------
-      |
-      | Nanti AppShell / ChatWidget / Notification dapat listen event ini.
-      |
-      */
-
-      window.dispatchEvent(
-        new CustomEvent(
-          "devknowledge:settings-changed",
-          {
-            detail: {
-              key,
-              value,
-            },
-          },
-        ),
-      );
-    } catch (error) {
-      /*
-      |--------------------------------------------------------------------------
-      | Rollback optimistic update
-      |--------------------------------------------------------------------------
-      */
-
-      setPreferences(
-        (current) => ({
-          ...current,
-          [key]:
-            previousValue,
-        }),
-      );
-
-      console.error(
-        "UPDATE SETTINGS ERROR:",
-        error,
-      );
-
+    } catch (err) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to save setting.",
+        err instanceof Error
+          ? err.message
+          : "Unable to save profile.",
       );
     } finally {
-      setSavingKey(null);
+      setLoading(false);
     }
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Desktop notification
-  |--------------------------------------------------------------------------
-  */
+  function resetPasswordForm() {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError("");
+    setPasswordSuccess("");
+  }
 
-  async function changeDesktopNotifications(
-    enabled: boolean,
+  async function submitPassword(
+    event: FormEvent<HTMLFormElement>,
   ) {
-    if (
-      enabled &&
-      typeof window !==
-        "undefined" &&
-      "Notification" in window
-    ) {
-      const permission =
-        await Notification.requestPermission();
+    event.preventDefault();
 
-      if (
-        permission !==
-        "granted"
-      ) {
-        setError(
-          "Browser notification permission was not granted.",
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
+      setPasswordError(
+        "New password and confirmation do not match.",
+      );
+
+      return;
+    }
+
+    if (
+      newPassword.length < 8
+    ) {
+      setPasswordError(
+        "New password must be at least 8 characters.",
+      );
+
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const response =
+        await fetch(
+          "/api/security/password",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              currentPassword,
+              newPassword,
+            }),
+          },
         );
 
-        return;
-      }
-    }
+      const data =
+        await response.json();
 
-    await updatePreference(
-      "desktopNotifications",
-      enabled,
-    );
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Unable to update password.",
+        );
+      }
+
+      setPasswordSuccess(
+        "Password updated. Other active sessions were signed out.",
+      );
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPasswordError(
+        err instanceof Error
+          ? err.message
+          : "Unable to update password.",
+      );
+    } finally {
+      setPasswordLoading(
+        false,
+      );
+    }
   }
 
+  const loadSessions =
+    useCallback(async () => {
+      setSessionsLoading(
+        true,
+      );
+
+      setSessionError("");
+
+      try {
+        const response =
+          await fetch(
+            "/api/security/sessions",
+            {
+              cache:
+                "no-store",
+            },
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ??
+              "Unable to load active sessions.",
+          );
+        }
+
+        setSessions(
+          data.sessions ?? [],
+        );
+      } catch (err) {
+        setSessionError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load active sessions.",
+        );
+      } finally {
+        setSessionsLoading(
+          false,
+        );
+      }
+    }, []);
+
+  useEffect(() => {
+    if (sessionsOpen) {
+      void loadSessions();
+    }
+  }, [
+    sessionsOpen,
+    loadSessions,
+  ]);
+
+  async function revokeSession(
+    id: string,
+  ) {
+    setSessionAction(id);
+    setSessionError("");
+
+    try {
+      const response =
+        await fetch(
+          `/api/security/sessions/${id}`,
+          {
+            method:
+              "DELETE",
+          },
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Unable to sign out this session.",
+        );
+      }
+
+      setSessions(
+        (current) =>
+          current.filter(
+            (session) =>
+              session.id !== id,
+          ),
+      );
+    } catch (err) {
+      setSessionError(
+        err instanceof Error
+          ? err.message
+          : "Unable to sign out this session.",
+      );
+    } finally {
+      setSessionAction(
+        null,
+      );
+    }
+  }
+
+  async function revokeOtherSessions() {
+    setSessionAction(
+      "others",
+    );
+
+    setSessionError("");
+
+    try {
+      const response =
+        await fetch(
+          "/api/security/sessions/revoke-others",
+          {
+            method:
+              "POST",
+          },
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Unable to sign out other sessions.",
+        );
+      }
+
+      setSessions(
+        (current) =>
+          current.filter(
+            (session) =>
+              session.current,
+          ),
+      );
+    } catch (err) {
+      setSessionError(
+        err instanceof Error
+          ? err.message
+          : "Unable to sign out other sessions.",
+      );
+    } finally {
+      setSessionAction(
+        null,
+      );
+    }
+  }
+
+  const otherSessionCount =
+    useMemo(
+      () =>
+        sessions.filter(
+          (session) =>
+            !session.current,
+        ).length,
+      [sessions],
+    );
+
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      {/* HEADER */}
+    <div className="max-w-6xl">
+      <PageHeader
+        eyebrow="Preferences"
+        title="Settings"
+        description="Manage your account, appearance, notifications, messaging preferences, and security."
+      />
+
+      {/* TABS */}
       <div
         className="
-          mb-[var(--space-section)]
+          mb-5
           flex
-          flex-col
-          gap-[var(--space-card-sm)]
-
-          sm:flex-row
-          sm:items-end
-          sm:justify-between
+          overflow-x-auto
+          border-b
+          border-[var(--border)]
         "
       >
-        <div>
-          <div
-            className="
-              flex
-              items-center
-              gap-2
-              text-xs
-              font-semibold
-              uppercase
-              tracking-[0.18em]
-              text-[var(--primary)]
-            "
-          >
-            <Sparkles className="h-4 w-4" />
+        {tabs.map((tab) => {
+          const active =
+            activeTab ===
+            tab.id;
 
-            Preferences
-          </div>
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() =>
+                setActiveTab(
+                  tab.id,
+                )
+              }
+              className={`
+                relative
+                flex shrink-0
+                items-center
+                gap-2
+                px-4 py-3
+                text-sm
+                font-medium
+                transition
 
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">
-            Settings
-          </h1>
+                ${
+                  active
+                    ? `
+                      text-[var(--text)]
+                    `
+                    : `
+                      text-[var(--text-muted)]
+                      hover:text-[var(--text)]
+                    `
+                }
+              `}
+            >
+              {tab.icon}
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
-            Customize how
-            DevKnowledge works for
-            your account,
-            notifications, chat,
-            and appearance.
-          </p>
-        </div>
+              {tab.label}
 
-        {/* SAVE STATUS */}
-        <div className="h-7">
-          {savingKey ? (
-            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-              <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-
-              Saving...
-            </div>
-          ) : saved ? (
-            <div className="flex items-center gap-2 text-xs text-emerald-600">
-              <Check className="h-3.5 w-3.5" />
-
-              Saved
-            </div>
-          ) : null}
-        </div>
+              {active ? (
+                <span
+                  className="
+                    absolute
+                    inset-x-3
+                    bottom-0
+                    h-0.5
+                    rounded-full
+                    bg-[var(--primary)]
+                  "
+                />
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
-      {/* ERROR */}
-      {error ? (
+      {preferenceError ? (
         <div
           className="
-            mb-[var(--space-section-small)]
-            flex
-            items-start
-            justify-between
-            gap-[var(--space-card-sm)]
+            mb-4
             rounded-xl
             border
             border-red-200
             bg-red-50
-            px-[var(--space-inline)]
-            py-[var(--space-row-y)]
+            px-4 py-3
             text-sm
-            text-red-600
+            text-red-700
+            dark:border-red-900/50
+            dark:bg-red-950/20
+            dark:text-red-300
           "
         >
-          <span>
-            {error}
-          </span>
-
-          <button
-            type="button"
-            onClick={() =>
-              setError(null)
-            }
-            className="shrink-0 text-xs font-medium"
-          >
-            Dismiss
-          </button>
+          {preferenceError}
         </div>
       ) : null}
 
-      <div
-        className="
-          grid
-          gap-[var(--space-section)]
-
-          xl:grid-cols-[minmax(0,1fr)_300px]
-        "
-      >
-        {/* LEFT */}
-        <div className="space-y-[var(--space-section)]">
-          {/* ACCOUNT */}
-          <Section
-            icon={UserRound}
-            title="Account"
-            description="Manage your account and profile access."
+      {/* ACCOUNT */}
+      {activeTab ===
+      "account" ? (
+        <div
+          className="
+            grid
+            gap-4
+            lg:grid-cols-[minmax(0,1fr)_300px]
+          "
+        >
+          <form
+            onSubmit={
+              saveProfile
+            }
+            className="
+              overflow-hidden
+              rounded-2xl
+              border
+              border-[var(--border)]
+              bg-[var(--surface)]
+            "
           >
-            <Link
-              href="/profile"
+            <div
+              className="
+                border-b
+                border-[var(--border)]
+                px-5 py-4
+              "
+            >
+              <h2
+                className="
+                  text-sm
+                  font-semibold
+                "
+              >
+                Profile
+              </h2>
+
+              <p
+                className="
+                  mt-1
+                  text-xs
+                  text-[var(--text-muted)]
+                "
+              >
+                Manage your
+                account information
+                and workspace
+                profile.
+              </p>
+            </div>
+
+            <div
+              className="
+                space-y-4
+                p-5
+              "
+            >
+              <div>
+                <Label>
+                  Name
+                </Label>
+
+                <Input
+                  value={
+                    user.name
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setUser({
+                      ...user,
+                      name: event
+                        .target
+                        .value,
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>
+                  Email
+                </Label>
+
+                <Input
+                  value={
+                    user.email
+                  }
+                  disabled
+                  className="
+                    cursor-not-allowed
+                    opacity-65
+                  "
+                />
+
+                <p
+                  className="
+                    mt-1.5
+                    text-xs
+                    text-[var(--text-muted)]
+                  "
+                >
+                  Email changes
+                  are currently
+                  disabled.
+                </p>
+              </div>
+
+              <div>
+                <Label>
+                  Bio
+                </Label>
+
+                <Textarea
+                  value={
+                    user.bio ??
+                    ""
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setUser({
+                      ...user,
+                      bio: event
+                        .target
+                        .value,
+                    })
+                  }
+                  placeholder="Backend developer focused on..."
+                />
+              </div>
+
+              {error ? (
+                <div
+                  className="
+                    rounded-xl
+                    bg-red-50
+                    p-3
+                    text-sm
+                    text-red-700
+                    dark:bg-red-950/20
+                    dark:text-red-300
+                  "
+                >
+                  {error}
+                </div>
+              ) : null}
+
+              <div
+                className="
+                  flex
+                  justify-end
+                "
+              >
+                <Button
+                  disabled={
+                    loading
+                  }
+                >
+                  {loading ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : saved ? (
+                    <Check className="h-4 w-4" />
+                  ) : null}
+
+                  {saved
+                    ? "Saved"
+                    : "Save profile"}
+                </Button>
+              </div>
+            </div>
+
+            <div
               className="
                 flex
                 items-center
                 justify-between
-                gap-[var(--space-card-sm)]
-                border-b
+                gap-4
+                border-t
                 border-[var(--border)]
-                px-[var(--space-inline)]
-                py-[var(--space-row-y)]
-                transition
-
-                hover:bg-[var(--surface-soft)]
-
-                sm:px-[var(--space-card)]
+                px-5 py-4
               "
             >
-              <div className="min-w-0">
-                <div className="text-sm font-medium">
-                  Profile
-                </div>
+              <div>
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                  "
+                >
+                  Password
+                </p>
 
-                <div className="mt-1 text-xs text-[var(--text-muted)]">
-                  Change your name,
-                  bio, and profile
-                  photo.
-                </div>
+                <p
+                  className="
+                    mt-1
+                    text-xs
+                    text-[var(--text-muted)]
+                  "
+                >
+                  Update the
+                  password used to
+                  sign in.
+                </p>
               </div>
 
-              <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-            </Link>
-
-            <SettingRow
-              title="Email"
-              description="Email changes are currently disabled."
-            >
-              <span
-                className="
-                  block
-                  max-w-[160px]
-                  truncate
-                  text-right
-                  text-xs
-                  text-[var(--text-muted)]
-
-                  sm:max-w-[240px]
-                "
-                title={
-                  initialData
-                    .account.email
-                }
-              >
-                {
-                  initialData
-                    .account.email
-                }
-              </span>
-            </SettingRow>
-
-            <SettingRow
-              title="Password"
-              description="Password management can be added to account security."
-            >
-              <button
+              <GhostButton
                 type="button"
-                disabled
-                className="
-                  inline-flex
-                  h-9
-                  items-center
-                  gap-2
-                  rounded-lg
-                  border
-                  border-[var(--border)]
-                  px-3
-                  text-xs
-                  font-medium
-                  opacity-50
-                "
-                title="Coming soon"
+                className="shrink-0"
+                onClick={() => {
+                  resetPasswordForm();
+                  setPasswordOpen(
+                    true,
+                  );
+                }}
               >
-                <LockKeyhole className="h-3.5 w-3.5" />
-
+                <LockKeyhole className="h-4 w-4" />
                 Change
-              </button>
-            </SettingRow>
-          </Section>
+              </GhostButton>
+            </div>
+          </form>
 
-          {/* APPEARANCE */}
+          <aside
+            className="
+              h-fit
+              rounded-2xl
+              border
+              border-[var(--border)]
+              bg-[var(--surface)]
+              p-5
+            "
+          >
+            <span
+              className="
+                grid h-10 w-10
+                place-items-center
+                rounded-xl
+                bg-[var(--primary-soft)]
+                text-[var(--primary)]
+              "
+            >
+              <ShieldCheck className="h-[18px] w-[18px]" />
+            </span>
+
+            <h2
+              className="
+                mt-4
+                text-sm
+                font-semibold
+              "
+            >
+              Access role
+            </h2>
+
+            <div className="mt-3">
+              <Badge tone="primary">
+                {user.role}
+              </Badge>
+            </div>
+
+            <p
+              className="
+                mt-3
+                text-xs
+                leading-5
+                text-[var(--text-muted)]
+              "
+            >
+              Your workspace
+              permissions are
+              managed by
+              administrators.
+            </p>
+          </aside>
+        </div>
+      ) : null}
+
+      {/* APPEARANCE */}
+      {activeTab ===
+      "appearance" ? (
+        <div className="space-y-4">
           <Section
-            icon={MonitorCog}
+            icon={
+              <Palette className="h-[18px] w-[18px]" />
+            }
             title="Appearance"
-            description="Control how DevKnowledge looks on this device."
+            description="Customize how DevKnowledge looks on this device."
           >
             <SettingRow
               title="Theme"
@@ -667,7 +1466,7 @@ export default function SettingsClient({
                   preferences.theme
                 }
                 disabled={
-                  savingKey ===
+                  preferenceSaving ===
                   "theme"
                 }
                 onChange={(
@@ -681,14 +1480,16 @@ export default function SettingsClient({
                 }
                 className="
                   h-9
-                  rounded-lg
+                  min-w-[140px]
+                  rounded-xl
                   border
                   border-[var(--border)]
                   bg-[var(--surface)]
                   px-3
-                  text-xs
+                  text-sm
+                  text-[var(--text)]
                   outline-none
-
+                  transition
                   focus:border-[var(--primary)]
                   disabled:opacity-50
                 "
@@ -709,197 +1510,332 @@ export default function SettingsClient({
 
             <SettingRow
               title="Compact layout"
-              description="Reduce spacing in lists and cards."
+              description="Reduce spacing in lists, cards, controls, and page sections."
             >
               <Toggle
                 checked={
                   preferences.compactMode
                 }
                 disabled={
-                  savingKey ===
+                  preferenceSaving ===
                   "compactMode"
                 }
                 onChange={(
-                  checked,
+                  value,
                 ) =>
                   void updatePreference(
                     "compactMode",
-                    checked,
+                    value,
                   )
                 }
               />
             </SettingRow>
           </Section>
 
-          {/* NOTIFICATIONS */}
+          <div
+            className="
+              grid
+              gap-3
+              sm:grid-cols-3
+            "
+          >
+            <div
+              className="
+                rounded-2xl
+                border
+                border-[var(--border)]
+                bg-[var(--surface)]
+                p-4
+              "
+            >
+              <Sun
+                className="
+                  h-5 w-5
+                  text-[var(--primary)]
+                "
+              />
+
+              <p
+                className="
+                  mt-3
+                  text-sm
+                  font-medium
+                "
+              >
+                Light
+              </p>
+
+              <p
+                className="
+                  mt-1
+                  text-xs
+                  text-[var(--text-muted)]
+                "
+              >
+                Bright interface
+                for daytime use.
+              </p>
+            </div>
+
+            <div
+              className="
+                rounded-2xl
+                border
+                border-[var(--border)]
+                bg-[var(--surface)]
+                p-4
+              "
+            >
+              <Moon
+                className="
+                  h-5 w-5
+                  text-[var(--primary)]
+                "
+              />
+
+              <p
+                className="
+                  mt-3
+                  text-sm
+                  font-medium
+                "
+              >
+                Dark
+              </p>
+
+              <p
+                className="
+                  mt-1
+                  text-xs
+                  text-[var(--text-muted)]
+                "
+              >
+                Reduced brightness
+                for darker
+                environments.
+              </p>
+            </div>
+
+            <div
+              className="
+                rounded-2xl
+                border
+                border-[var(--border)]
+                bg-[var(--surface)]
+                p-4
+              "
+            >
+              <MonitorSmartphone
+                className="
+                  h-5 w-5
+                  text-[var(--primary)]
+                "
+              />
+
+              <p
+                className="
+                  mt-3
+                  text-sm
+                  font-medium
+                "
+              >
+                System
+              </p>
+
+              <p
+                className="
+                  mt-1
+                  text-xs
+                  text-[var(--text-muted)]
+                "
+              >
+                Follow your device
+                appearance.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* NOTIFICATIONS */}
+      {activeTab ===
+      "notifications" ? (
+        <Section
+          icon={
+            <Bell className="h-[18px] w-[18px]" />
+          }
+          title="Notifications"
+          description="Choose which workspace activity should notify you."
+        >
+          <SettingRow
+            title="Friend requests"
+            description="Notify me when someone sends a friend request."
+          >
+            <Toggle
+              checked={
+                preferences.notifyFriendRequests
+              }
+              disabled={
+                preferenceSaving ===
+                "notifyFriendRequests"
+              }
+              onChange={(
+                value,
+              ) =>
+                void updatePreference(
+                  "notifyFriendRequests",
+                  value,
+                )
+              }
+            />
+          </SettingRow>
+
+          <SettingRow
+            title="Mentions"
+            description="Notify me when someone mentions me."
+          >
+            <Toggle
+              checked={
+                preferences.notifyMentions
+              }
+              disabled={
+                preferenceSaving ===
+                "notifyMentions"
+              }
+              onChange={(
+                value,
+              ) =>
+                void updatePreference(
+                  "notifyMentions",
+                  value,
+                )
+              }
+            />
+          </SettingRow>
+
+          <SettingRow
+            title="Group messages"
+            description="Notify me when new group messages arrive."
+          >
+            <Toggle
+              checked={
+                preferences.notifyGroupMessages
+              }
+              disabled={
+                preferenceSaving ===
+                "notifyGroupMessages"
+              }
+              onChange={(
+                value,
+              ) =>
+                void updatePreference(
+                  "notifyGroupMessages",
+                  value,
+                )
+              }
+            />
+          </SettingRow>
+
+          <SettingRow
+            title="Forum replies"
+            description="Notify me when someone replies to my discussion."
+          >
+            <Toggle
+              checked={
+                preferences.notifyForumReplies
+              }
+              disabled={
+                preferenceSaving ===
+                "notifyForumReplies"
+              }
+              onChange={(
+                value,
+              ) =>
+                void updatePreference(
+                  "notifyForumReplies",
+                  value,
+                )
+              }
+            />
+          </SettingRow>
+
+          <SettingRow
+            title="Accepted answers"
+            description="Notify me when an answer is marked as accepted."
+          >
+            <Toggle
+              checked={
+                preferences.notifyAcceptedAnswers
+              }
+              disabled={
+                preferenceSaving ===
+                "notifyAcceptedAnswers"
+              }
+              onChange={(
+                value,
+              ) =>
+                void updatePreference(
+                  "notifyAcceptedAnswers",
+                  value,
+                )
+              }
+            />
+          </SettingRow>
+
+          <SettingRow
+            title="Reputation"
+            description="Notify me when my reputation changes."
+          >
+            <Toggle
+              checked={
+                preferences.notifyReputation
+              }
+              disabled={
+                preferenceSaving ===
+                "notifyReputation"
+              }
+              onChange={(
+                value,
+              ) =>
+                void updatePreference(
+                  "notifyReputation",
+                  value,
+                )
+              }
+            />
+          </SettingRow>
+        </Section>
+      ) : null}
+
+      {/* MESSAGES + SECURITY */}
+      {activeTab ===
+      "messages" ? (
+        <div className="space-y-4">
           <Section
-            icon={Bell}
-            title="Notifications"
-            description="Choose which activity should notify you."
+            icon={
+              <MessageSquare className="h-[18px] w-[18px]" />
+            }
+            title="Messages"
+            description="Manage chat presence, receipts, sounds, and desktop alerts."
           >
             <SettingRow
-              title="Friend requests"
-              description="Notify when someone sends you a friend request."
-            >
-              <Toggle
-                checked={
-                  preferences.notifyFriendRequests
-                }
-                disabled={
-                  savingKey ===
-                  "notifyFriendRequests"
-                }
-                onChange={(
-                  checked,
-                ) =>
-                  void updatePreference(
-                    "notifyFriendRequests",
-                    checked,
-                  )
-                }
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="Mentions"
-              description="Notify when someone mentions you."
-            >
-              <Toggle
-                checked={
-                  preferences.notifyMentions
-                }
-                disabled={
-                  savingKey ===
-                  "notifyMentions"
-                }
-                onChange={(
-                  checked,
-                ) =>
-                  void updatePreference(
-                    "notifyMentions",
-                    checked,
-                  )
-                }
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="Group messages"
-              description="Notify about new group chat activity."
-            >
-              <Toggle
-                checked={
-                  preferences.notifyGroupMessages
-                }
-                disabled={
-                  savingKey ===
-                  "notifyGroupMessages"
-                }
-                onChange={(
-                  checked,
-                ) =>
-                  void updatePreference(
-                    "notifyGroupMessages",
-                    checked,
-                  )
-                }
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="Forum replies"
-              description="Notify when someone replies to your discussion."
-            >
-              <Toggle
-                checked={
-                  preferences.notifyForumReplies
-                }
-                disabled={
-                  savingKey ===
-                  "notifyForumReplies"
-                }
-                onChange={(
-                  checked,
-                ) =>
-                  void updatePreference(
-                    "notifyForumReplies",
-                    checked,
-                  )
-                }
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="Accepted answers"
-              description="Notify when your reply is accepted as a solution."
-            >
-              <Toggle
-                checked={
-                  preferences.notifyAcceptedAnswers
-                }
-                disabled={
-                  savingKey ===
-                  "notifyAcceptedAnswers"
-                }
-                onChange={(
-                  checked,
-                ) =>
-                  void updatePreference(
-                    "notifyAcceptedAnswers",
-                    checked,
-                  )
-                }
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="Reputation updates"
-              description="Notify about badges and reputation activity."
-            >
-              <Toggle
-                checked={
-                  preferences.notifyReputation
-                }
-                disabled={
-                  savingKey ===
-                  "notifyReputation"
-                }
-                onChange={(
-                  checked,
-                ) =>
-                  void updatePreference(
-                    "notifyReputation",
-                    checked,
-                  )
-                }
-              />
-            </SettingRow>
-          </Section>
-
-          {/* CHAT */}
-          <Section
-            icon={MessageCircleMore}
-            title="Chat & presence"
-            description="Control messaging behavior and online presence."
-          >
-            <SettingRow
-              title="Show online status"
-              description="Allow friends to see when you are online."
+              title="Online status"
+              description="Allow other users to see when you are online."
             >
               <Toggle
                 checked={
                   preferences.showOnlineStatus
                 }
                 disabled={
-                  savingKey ===
+                  preferenceSaving ===
                   "showOnlineStatus"
                 }
                 onChange={(
-                  checked,
+                  value,
                 ) =>
                   void updatePreference(
                     "showOnlineStatus",
-                    checked,
+                    value,
                   )
                 }
               />
@@ -907,22 +1843,22 @@ export default function SettingsClient({
 
             <SettingRow
               title="Read receipts"
-              description="Let others know when you have read their messages."
+              description="Let people know when you have read their messages."
             >
               <Toggle
                 checked={
                   preferences.readReceipts
                 }
                 disabled={
-                  savingKey ===
+                  preferenceSaving ===
                   "readReceipts"
                 }
                 onChange={(
-                  checked,
+                  value,
                 ) =>
                   void updatePreference(
                     "readReceipts",
-                    checked,
+                    value,
                   )
                 }
               />
@@ -930,22 +1866,22 @@ export default function SettingsClient({
 
             <SettingRow
               title="Message sounds"
-              description="Play a sound for new messages."
+              description="Play a sound when new messages arrive."
             >
               <Toggle
                 checked={
                   preferences.messageSounds
                 }
                 disabled={
-                  savingKey ===
+                  preferenceSaving ===
                   "messageSounds"
                 }
                 onChange={(
-                  checked,
+                  value,
                 ) =>
                   void updatePreference(
                     "messageSounds",
-                    checked,
+                    value,
                   )
                 }
               />
@@ -953,141 +1889,504 @@ export default function SettingsClient({
 
             <SettingRow
               title="Desktop notifications"
-              description="Allow browser notifications for new messages."
+              description="Allow browser notifications for message activity."
             >
               <Toggle
                 checked={
                   preferences.desktopNotifications
                 }
                 disabled={
-                  savingKey ===
+                  preferenceSaving ===
                   "desktopNotifications"
                 }
                 onChange={(
-                  checked,
+                  value,
                 ) =>
-                  void changeDesktopNotifications(
-                    checked,
+                  void updatePreference(
+                    "desktopNotifications",
+                    value,
                   )
                 }
               />
             </SettingRow>
           </Section>
+
+          <Section
+            icon={
+              <ShieldCheck className="h-[18px] w-[18px]" />
+            }
+            title="Security"
+            description="Manage your password and devices currently signed in."
+          >
+            <SettingRow
+              title="Password"
+              description="Change your account password. Other sessions will be signed out."
+            >
+              <GhostButton
+                type="button"
+                onClick={() => {
+                  resetPasswordForm();
+                  setPasswordOpen(
+                    true,
+                  );
+                }}
+              >
+                <LockKeyhole className="h-4 w-4" />
+                Change
+              </GhostButton>
+            </SettingRow>
+
+            <SettingRow
+              title="Active sessions"
+              description="Review browsers and devices signed in to your account."
+            >
+              <GhostButton
+                type="button"
+                onClick={() =>
+                  setSessionsOpen(
+                    true,
+                  )
+                }
+              >
+                <Laptop className="h-4 w-4" />
+                Manage
+              </GhostButton>
+            </SettingRow>
+          </Section>
         </div>
+      ) : null}
 
-        {/* RIGHT */}
-        <aside className="space-y-[var(--space-section)]">
-          {/* ROLE */}
-          <section
+      {/* CHANGE PASSWORD MODAL */}
+      <Modal
+        open={passwordOpen}
+        title="Change password"
+        description="Choose a strong password you do not use elsewhere. Updating it will sign out your other active sessions."
+        onClose={() => {
+          if (
+            !passwordLoading
+          ) {
+            setPasswordOpen(
+              false,
+            );
+
+            resetPasswordForm();
+          }
+        }}
+      >
+        <form
+          onSubmit={
+            submitPassword
+          }
+          className="
+            space-y-4
+            p-5
+          "
+        >
+          <PasswordInput
+            label="Current password"
+            value={
+              currentPassword
+            }
+            onChange={
+              setCurrentPassword
+            }
+            autoComplete="current-password"
+          />
+
+          <PasswordInput
+            label="New password"
+            value={
+              newPassword
+            }
+            onChange={
+              setNewPassword
+            }
+            autoComplete="new-password"
+          />
+
+          <PasswordInput
+            label="Confirm new password"
+            value={
+              confirmPassword
+            }
+            onChange={
+              setConfirmPassword
+            }
+            autoComplete="new-password"
+          />
+
+          <p
             className="
-              rounded-2xl
-              border
-              border-[var(--border)]
-              bg-[var(--surface)]
-              p-[var(--space-card)]
+              text-xs
+              text-[var(--text-muted)]
             "
           >
+            Password must
+            contain at least 8
+            characters.
+          </p>
+
+          {passwordError ? (
             <div
               className="
-                grid
-                h-[var(--control-height-lg)]
-                w-11
-                place-items-center
                 rounded-xl
-                bg-[var(--primary-soft)]
-                text-[var(--primary)]
+                bg-red-50
+                p-3
+                text-sm
+                text-red-700
+                dark:bg-red-950/20
+                dark:text-red-300
               "
             >
-              <ShieldCheck className="h-5 w-5" />
+              {passwordError}
             </div>
+          ) : null}
 
-            <h2 className="mt-[var(--space-section-small)] text-sm font-semibold">
-              Access role
-            </h2>
-
-            <span
+          {passwordSuccess ? (
+            <div
               className="
-                mt-3
-                inline-flex
-                rounded-full
-                bg-[var(--primary-soft)]
-                px-3
-                py-1
-                text-xs
-                font-medium
-                text-[var(--primary)]
+                rounded-xl
+                bg-emerald-50
+                p-3
+                text-sm
+                text-emerald-700
+                dark:bg-emerald-950/20
+                dark:text-emerald-300
               "
             >
-              {
-                initialData
-                  .account.role
-              }
-            </span>
+              {passwordSuccess}
+            </div>
+          ) : null}
 
-            <p className="mt-[var(--space-section-small)] text-xs leading-6 text-[var(--text-muted)]">
-              Your workspace
-              permissions are managed
-              by administrators.
-            </p>
-          </section>
-
-          {/* SECURITY */}
-          <section
+          <div
             className="
-              rounded-2xl
-              border
+              flex
+              justify-end
+              gap-2
+              border-t
               border-[var(--border)]
-              bg-[var(--surface)]
-              p-[var(--space-card)]
+              pt-4
             "
           >
-            <div
-              className="
-                grid
-                h-[var(--control-height-lg)]
-                w-11
-                place-items-center
-                rounded-xl
-                bg-[var(--primary-soft)]
-                text-[var(--primary)]
-              "
-            >
-              <Laptop className="h-5 w-5" />
-            </div>
-
-            <h2 className="mt-[var(--space-section-small)] text-sm font-semibold">
-              Security
-            </h2>
-
-            <p className="mt-2 text-xs leading-6 text-[var(--text-muted)]">
-              Active session
-              management can be added
-              here when multi-session
-              authentication is
-              implemented.
-            </p>
-
-            <button
+            <GhostButton
               type="button"
-              disabled
-              className="
-                mt-[var(--space-section-small)]
-                h-9
-                w-full
-                rounded-lg
-                border
-                border-[var(--border)]
-                text-xs
-                font-medium
-                opacity-50
-              "
-              title="Coming soon"
+              disabled={
+                passwordLoading
+              }
+              onClick={() => {
+                setPasswordOpen(
+                  false,
+                );
+
+                resetPasswordForm();
+              }}
             >
-              Manage sessions
-            </button>
-          </section>
-        </aside>
-      </div>
+              Cancel
+            </GhostButton>
+
+            <Button
+              type="submit"
+              disabled={
+                passwordLoading ||
+                !currentPassword ||
+                newPassword.length <
+                  8 ||
+                newPassword !==
+                  confirmPassword
+              }
+            >
+              {passwordLoading ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="h-4 w-4" />
+              )}
+
+              Update password
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* SESSIONS MODAL */}
+      <Modal
+        open={sessionsOpen}
+        title="Active sessions"
+        description="These are the devices currently signed in to your DevKnowledge account."
+        onClose={() => {
+          if (
+            !sessionAction
+          ) {
+            setSessionsOpen(
+              false,
+            );
+          }
+        }}
+      >
+        <div className="p-5">
+          {sessionsLoading ? (
+            <div
+              className="
+                flex min-h-32
+                items-center
+                justify-center
+                gap-2
+                text-sm
+                text-[var(--text-muted)]
+              "
+            >
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+
+              Loading
+              sessions...
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sessions.map(
+                (session) => (
+                  <div
+                    key={
+                      session.id
+                    }
+                    className="
+                      rounded-xl
+                      border
+                      border-[var(--border)]
+                      bg-[var(--surface-soft)]
+                      p-4
+                    "
+                  >
+                    <div
+                      className="
+                        flex
+                        items-start
+                        justify-between
+                        gap-3
+                      "
+                    >
+                      <div
+                        className="
+                          flex
+                          min-w-0
+                          gap-3
+                        "
+                      >
+                        <span
+                          className="
+                            grid
+                            h-9 w-9
+                            shrink-0
+                            place-items-center
+                            rounded-lg
+                            bg-[var(--surface)]
+                            text-[var(--text-soft)]
+                          "
+                        >
+                          <Laptop className="h-4 w-4" />
+                        </span>
+
+                        <div className="min-w-0">
+                          <div
+                            className="
+                              flex
+                              flex-wrap
+                              items-center
+                              gap-2
+                            "
+                          >
+                            <p
+                              className="
+                                truncate
+                                text-sm
+                                font-medium
+                              "
+                            >
+                              {
+                                session.browser
+                              }{" "}
+                              on{" "}
+                              {
+                                session.device
+                              }
+                            </p>
+
+                            {session.current ? (
+                              <Badge tone="primary">
+                                Current
+                              </Badge>
+                            ) : null}
+                          </div>
+
+                          <p
+                            className="
+                              mt-1
+                              text-xs
+                              text-[var(--text-muted)]
+                            "
+                          >
+                            {session.current
+                              ? "Active now"
+                              : `Last active ${formatDate(
+                                  session.lastSeenAt,
+                                )}`}
+
+                            {session.ipAddress
+                              ? ` · ${session.ipAddress}`
+                              : ""}
+                          </p>
+
+                          <p
+                            className="
+                              mt-1
+                              text-[11px]
+                              text-[var(--text-muted)]
+                            "
+                          >
+                            Signed in{" "}
+                            {formatDate(
+                              session.createdAt,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!session.current ? (
+                        <button
+                          type="button"
+                          disabled={
+                            sessionAction ===
+                            session.id
+                          }
+                          onClick={() =>
+                            void revokeSession(
+                              session.id,
+                            )
+                          }
+                          className="
+                            inline-flex
+                            h-8
+                            shrink-0
+                            items-center
+                            gap-1.5
+                            rounded-lg
+                            border
+                            border-[var(--border)]
+                            bg-[var(--surface)]
+                            px-2.5
+                            text-xs
+                            font-medium
+                            text-[var(--text-soft)]
+                            transition
+                            hover:bg-[var(--surface-hover)]
+                            hover:text-[var(--danger)]
+                            disabled:cursor-not-allowed
+                            disabled:opacity-50
+                          "
+                        >
+                          {sessionAction ===
+                          session.id ? (
+                            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <LogOut className="h-3.5 w-3.5" />
+                          )}
+
+                          Sign out
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ),
+              )}
+
+              {!sessions.length ? (
+                <div
+                  className="
+                    rounded-xl
+                    border
+                    border-dashed
+                    border-[var(--border)]
+                    p-6
+                    text-center
+                    text-sm
+                    text-[var(--text-muted)]
+                  "
+                >
+                  No active
+                  sessions found.
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {sessionError ? (
+            <div
+              className="
+                mt-4
+                rounded-xl
+                bg-red-50
+                p-3
+                text-sm
+                text-red-700
+                dark:bg-red-950/20
+                dark:text-red-300
+              "
+            >
+              {sessionError}
+            </div>
+          ) : null}
+
+          <div
+            className="
+              mt-5
+              flex
+              items-center
+              justify-between
+              gap-3
+              border-t
+              border-[var(--border)]
+              pt-4
+            "
+          >
+            <p
+              className="
+                text-xs
+                text-[var(--text-muted)]
+              "
+            >
+              {otherSessionCount
+                ? `${otherSessionCount} other active session${
+                    otherSessionCount ===
+                    1
+                      ? ""
+                      : "s"
+                  }`
+                : "No other active sessions"}
+            </p>
+
+            <GhostButton
+              type="button"
+              disabled={
+                !otherSessionCount ||
+                Boolean(
+                  sessionAction,
+                )
+              }
+              onClick={() =>
+                void revokeOtherSessions()
+              }
+              className="text-[var(--danger)]"
+            >
+              {sessionAction ===
+              "others" ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+
+              Sign out others
+            </GhostButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

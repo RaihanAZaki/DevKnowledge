@@ -9,6 +9,7 @@ export type SessionUser = {
   name: string;
   email: string;
   role: "ADMIN" | "MODERATOR" | "MEMBER";
+  sessionId: string;
 };
 
 const encoder = new TextEncoder();
@@ -21,8 +22,16 @@ function secret() {
   return encoder.encode(value);
 }
 
-export async function signSession(user: SessionUser) {
-  return new SignJWT({ name: user.name, email: user.email, role: user.role })
+export async function signSession(
+  user: Omit<SessionUser, "sessionId">,
+  sessionId: string,
+) {
+  return new SignJWT({
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    sid: sessionId,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
     .setIssuedAt()
@@ -32,64 +41,76 @@ export async function signSession(user: SessionUser) {
 
 export async function verifySessionToken(token?: string | null): Promise<SessionUser | null> {
   if (!token) return null;
+
   try {
     const { payload } = await jwtVerify(token, secret());
-    if (!payload.sub || !payload.email || !payload.name || !payload.role) return null;
+    if (!payload.sub || !payload.email || !payload.name || !payload.role || !payload.sid) {
+      return null;
+    }
+
+    const sessionId = String(payload.sid);
+    const session = await prisma.authSession.findFirst({
+      where: {
+        id: sessionId,
+        userId: payload.sub,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true, lastSeenAt: true },
+    });
+
+    if (!session) return null;
+
+    if (Date.now() - session.lastSeenAt.getTime() > 5 * 60 * 1000) {
+      await prisma.authSession.update({
+        where: { id: session.id },
+        data: { lastSeenAt: new Date() },
+      });
+    }
+
     return {
       id: payload.sub,
       email: String(payload.email),
       name: String(payload.name),
       role: payload.role as SessionUser["role"],
+      sessionId,
     };
   } catch {
     return null;
   }
 }
 
-async function refreshSessionUser(session: SessionUser | null): Promise<SessionUser | null> {
-  if (!session) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.id },
-    select: { id: true, name: true, email: true, role: true },
-  });
-
-  if (!user) return null;
-
-  // Never trust authorization-sensitive fields such as role from a long-lived JWT.
-  // The database is the source of truth, so role changes/revocation take effect immediately.
-  return user;
-}
-
 export async function getSessionFromRequest(request: NextRequest) {
-  const session = await verifySessionToken(request.cookies.get(AUTH_COOKIE)?.value);
-  return refreshSessionUser(session);
+  return verifySessionToken(request.cookies.get(AUTH_COOKIE)?.value);
 }
 
 export async function getServerSession() {
   const store = await cookies();
-  const session = await verifySessionToken(store.get(AUTH_COOKIE)?.value);
-  return refreshSessionUser(session);
+  return verifySessionToken(store.get(AUTH_COOKIE)?.value);
 }
 
 export async function requireUser(request: NextRequest) {
   const session = await getSessionFromRequest(request);
   if (!session) return null;
 
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: session.id },
     select: { id: true, name: true, email: true, role: true, bio: true, avatarUrl: true },
   });
+
+  return user ? { ...user, sessionId: session.sessionId } : null;
 }
 
 export async function requireServerUser() {
   const session = await getServerSession();
   if (!session) return null;
 
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: session.id },
     select: { id: true, name: true, email: true, role: true, bio: true, avatarUrl: true },
   });
+
+  return user ? { ...user, sessionId: session.sessionId } : null;
 }
 
 export function canManage(ownerId: string, user: { id: string; role: string }) {
