@@ -595,7 +595,7 @@ export default function ProfileClient({
                     bottom-1
                     right-1
                     grid
-                    h-10
+                    h-[var(--control-height)]
                     w-10
                     place-items-center
                     rounded-full
@@ -639,7 +639,7 @@ export default function ProfileClient({
                 />
               </div>
 
-              <h1 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">
+              <h1 className="mt-[var(--space-section-small)] text-2xl font-semibold tracking-[-0.03em]">
                 {profile.name}
               </h1>
 
@@ -653,7 +653,7 @@ export default function ProfileClient({
                 <p
                   className="
                     mx-auto
-                    mt-4
+                    mt-[var(--space-section-small)]
                     max-w-md
                     text-sm
                     leading-6
@@ -666,7 +666,7 @@ export default function ProfileClient({
                   {profile.bio}
                 </p>
               ) : (
-                <p className="mt-4 text-sm italic text-[var(--text-muted)]">
+                <p className="mt-[var(--space-section-small)] text-sm italic text-[var(--text-muted)]">
                   No bio added yet.
                 </p>
               )}
@@ -677,9 +677,9 @@ export default function ProfileClient({
                   setEditing(true)
                 }
                 className="
-                  mt-5
+                  mt-[var(--space-section-small)]
                   flex
-                  h-10
+                  h-[var(--control-height)]
                   w-full
                   max-w-sm
                   items-center
@@ -743,7 +743,7 @@ export default function ProfileClient({
             </div>
 
             {/* REPUTATION */}
-            <section className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <section className="mt-[var(--space-section)] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-[var(--space-card)]">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-[var(--text-muted)]">
@@ -763,7 +763,7 @@ export default function ProfileClient({
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-3 text-center lg:text-left">
+              <div className="mt-[var(--space-section-small)] grid grid-cols-3 gap-3 text-center lg:text-left">
                 <div>
                   <p className="text-xs text-[var(--text-muted)]">
                     Threads
@@ -803,7 +803,7 @@ export default function ProfileClient({
             </section>
 
             {/* BADGES */}
-            <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
+            <div className="mt-[var(--space-section-small)] flex flex-wrap justify-center gap-2 lg:justify-start">
               {reputation.solved >
               0 ? (
                 <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
@@ -820,7 +820,7 @@ export default function ProfileClient({
             </div>
 
             {/* INFO */}
-            <div className="mt-5 space-y-2.5 text-sm text-[var(--text-soft)]">
+            <div className="mt-[var(--space-section-small)] space-y-2.5 text-sm text-[var(--text-soft)]">
               <div className="flex items-center justify-center gap-2 lg:justify-start">
                 <Mail className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 
@@ -854,13 +854,13 @@ export default function ProfileClient({
         {/* PROFILE CONTENT */}
         <main className="min-w-0">
           <div className="border-b border-[var(--border)]">
-            <div className="inline-flex items-center gap-2 border-b-2 border-[var(--text)] px-4 pb-3 text-sm font-medium">
+            <div className="inline-flex items-center gap-2 border-b-2 border-[var(--text)] px-[var(--space-inline)] pb-3 text-sm font-medium">
               <UserRound className="h-4 w-4" />
               Overview
             </div>
           </div>
 
-          <section className="mt-6">
+          <section className="mt-[var(--space-section)]">
             <div className="mb-3 text-sm font-semibold">
               DevKnowledge contributions
             </div>
@@ -913,7 +913,7 @@ export default function ProfileClient({
               </span>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:hidden">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-[var(--space-card-sm)] md:hidden">
               <div className="grid grid-cols-7 gap-1.5">
                 {Array.from({
                   length:
@@ -947,7 +947,7 @@ export default function ProfileClient({
               </div>
             </div>
 
-            <div className="hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:block">
+            <div className="hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-[var(--space-card-sm)] md:block">
               <div className="grid grid-cols-14 gap-1 lg:grid-cols-20">
                 {Array.from({
                   length:
@@ -996,7 +996,7 @@ export default function ProfileClient({
             <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
               {activities.length ===
               0 ? (
-                <div className="px-5 py-10 text-center text-sm text-[var(--text-muted)]">
+                <div className="px-[var(--space-card)] py-10 text-center text-sm text-[var(--text-muted)]">
                   No contributions yet.
                 </div>
               ) : (
@@ -1018,9 +1018,9 @@ export default function ProfileClient({
 
       {/* EDIT PROFILE */}
       {editing ? (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/40 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/40 px-[var(--space-inline)] backdrop-blur-sm">
           <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-[var(--space-card)] py-[var(--space-row-y)]">
               <div>
                 <h2 className="font-semibold">
                   Edit profile
@@ -1043,7 +1043,7 @@ export default function ProfileClient({
               </button>
             </div>
 
-            <div className="space-y-4 p-5">
+            <div className="space-y-[var(--space-section-small)] p-[var(--space-card)]">
               <div>
                 <label className="mb-1.5 block text-xs font-medium">
                   Name
@@ -1059,7 +1059,7 @@ export default function ProfileClient({
                         .value,
                     )
                   }
-                  className="field h-10 w-full px-3 text-sm"
+                  className="field h-[var(--control-height)] w-full px-3 text-sm"
                 />
               </div>
 
@@ -1085,13 +1085,13 @@ export default function ProfileClient({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
+            <div className="flex justify-end gap-2 border-t border-[var(--border)] px-[var(--space-card)] py-[var(--space-row-y)]">
               <button
                 type="button"
                 onClick={() =>
                   setEditing(false)
                 }
-                className="h-9 rounded-lg border border-[var(--border)] px-4 text-sm font-medium"
+                className="h-9 rounded-lg border border-[var(--border)] px-[var(--space-inline)] text-sm font-medium"
               >
                 Cancel
               </button>
@@ -1106,7 +1106,7 @@ export default function ProfileClient({
                 onClick={
                   saveProfile
                 }
-                className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--text)] px-4 text-sm font-medium text-[var(--background)] disabled:opacity-50"
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--text)] px-[var(--space-inline)] text-sm font-medium text-[var(--background)] disabled:opacity-50"
               >
                 {saving ? (
                   <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -1150,7 +1150,7 @@ function StatCard({
         transition
         hover:border-[var(--border-strong)]
         hover:shadow-sm
-        sm:p-4
+        sm:p-[var(--space-card-sm)]
       "
     >
       <div className="flex items-center justify-between gap-2">
@@ -1161,7 +1161,7 @@ function StatCard({
         </span>
       </div>
 
-      <div className="mt-3 truncate text-[10px] font-medium text-[var(--text-soft)] sm:mt-4 sm:text-xs">
+      <div className="mt-3 truncate text-[10px] font-medium text-[var(--text-soft)] sm:mt-[var(--space-section-small)] sm:text-xs">
         {label}
       </div>
     </Link>
@@ -1230,14 +1230,14 @@ function ContributionRow({
         flex
         items-center
         gap-3
-        px-4
-        py-3.5
+        px-[var(--space-inline)]
+        py-[var(--space-row-y)].5
         transition
         hover:bg-[var(--surface-soft)]
 
-        sm:gap-4
-        sm:px-5
-        sm:py-4
+        sm:gap-[var(--space-card-sm)]
+        sm:px-[var(--space-card)]
+        sm:py-[var(--space-row-y)]
       "
     >
       <div className="min-w-0 flex-1">

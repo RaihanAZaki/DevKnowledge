@@ -272,7 +272,7 @@ export default function FriendsClient({
             placeholder="Search by name or email..."
             className="
               field
-              h-11
+              h-[var(--control-height-lg)]
               w-full
               pl-9
               pr-3
@@ -296,10 +296,10 @@ export default function FriendsClient({
                     border-b
                     border-[var(--border)]
                     px-3
-                    py-3
+                    py-[var(--space-row-y)]
                     last:border-b-0
 
-                    sm:px-4
+                    sm:px-[var(--space-inline)]
                   "
                 >
                   <Avatar user={user} />
@@ -375,10 +375,10 @@ export default function FriendsClient({
                     border-b
                     border-[var(--border)]
                     px-3
-                    py-3
+                    py-[var(--space-row-y)]
                     last:border-b-0
 
-                    sm:px-4
+                    sm:px-[var(--space-inline)]
                   "
                 >
                   <Avatar
@@ -483,12 +483,12 @@ export default function FriendsClient({
                     border-b
                     border-[var(--border)]
                     px-3
-                    py-3
+                    py-[var(--space-row-y)]
                     transition
                     last:border-b-0
                     hover:bg-[var(--surface-soft)]
 
-                    sm:px-4
+                    sm:px-[var(--space-inline)]
                   "
                 >
                   <Avatar
@@ -532,7 +532,7 @@ export default function FriendsClient({
         </div>
 
         {friends.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border)] px-6 py-10 text-center text-sm text-[var(--text-muted)]">
+          <div className="rounded-2xl border border-dashed border-[var(--border)] px-[var(--space-section)] py-10 text-center text-sm text-[var(--text-muted)]">
             No friends yet.
           </div>
         ) : (
@@ -566,7 +566,7 @@ export default function FriendsClient({
                     hover:-translate-y-0.5
                     hover:shadow-sm
 
-                    sm:p-4
+                    sm:p-[var(--space-card-sm)]
                   "
                 >
                   <Avatar
@@ -626,7 +626,7 @@ function Avatar({
 }) {
   const size = large
     ? "h-12 w-12"
-    : "h-10 w-10";
+    : "h-[var(--control-height)] w-10";
 
   if (user.avatarUrl) {
     return (

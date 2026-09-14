@@ -100,7 +100,7 @@ function Toggle({
           h-5
           w-5
           rounded-full
-          bg-white
+          bg-[var(--surface)]
           shadow-sm
           transition-transform
 
@@ -130,14 +130,14 @@ function SettingRow({
         flex
         items-center
         justify-between
-        gap-4
+        gap-[var(--space-card-sm)]
         border-b
         border-[var(--border)]
-        px-4
-        py-4
+        px-[var(--space-inline)]
+        py-[var(--space-row-y)]
         last:border-b-0
 
-        sm:px-5
+        sm:px-[var(--space-card)]
       "
     >
       <div className="min-w-0">
@@ -187,10 +187,10 @@ function Section({
           gap-3
           border-b
           border-[var(--border)]
-          px-4
-          py-4
+          px-[var(--space-inline)]
+          py-[var(--space-row-y)]
 
-          sm:px-5
+          sm:px-[var(--space-card)]
         "
       >
         <div
@@ -453,10 +453,10 @@ export default function SettingsClient({
       {/* HEADER */}
       <div
         className="
-          mb-7
+          mb-[var(--space-section)]
           flex
           flex-col
-          gap-4
+          gap-[var(--space-card-sm)]
 
           sm:flex-row
           sm:items-end
@@ -516,17 +516,17 @@ export default function SettingsClient({
       {error ? (
         <div
           className="
-            mb-5
+            mb-[var(--space-section-small)]
             flex
             items-start
             justify-between
-            gap-4
+            gap-[var(--space-card-sm)]
             rounded-xl
             border
             border-red-200
             bg-red-50
-            px-4
-            py-3
+            px-[var(--space-inline)]
+            py-[var(--space-row-y)]
             text-sm
             text-red-600
           "
@@ -550,13 +550,13 @@ export default function SettingsClient({
       <div
         className="
           grid
-          gap-6
+          gap-[var(--space-section)]
 
           xl:grid-cols-[minmax(0,1fr)_300px]
         "
       >
         {/* LEFT */}
-        <div className="space-y-6">
+        <div className="space-y-[var(--space-section)]">
           {/* ACCOUNT */}
           <Section
             icon={UserRound}
@@ -569,16 +569,16 @@ export default function SettingsClient({
                 flex
                 items-center
                 justify-between
-                gap-4
+                gap-[var(--space-card-sm)]
                 border-b
                 border-[var(--border)]
-                px-4
-                py-4
+                px-[var(--space-inline)]
+                py-[var(--space-row-y)]
                 transition
 
                 hover:bg-[var(--surface-soft)]
 
-                sm:px-5
+                sm:px-[var(--space-card)]
               "
             >
               <div className="min-w-0">
@@ -976,7 +976,7 @@ export default function SettingsClient({
         </div>
 
         {/* RIGHT */}
-        <aside className="space-y-6">
+        <aside className="space-y-[var(--space-section)]">
           {/* ROLE */}
           <section
             className="
@@ -984,13 +984,13 @@ export default function SettingsClient({
               border
               border-[var(--border)]
               bg-[var(--surface)]
-              p-5
+              p-[var(--space-card)]
             "
           >
             <div
               className="
                 grid
-                h-11
+                h-[var(--control-height-lg)]
                 w-11
                 place-items-center
                 rounded-xl
@@ -1001,7 +1001,7 @@ export default function SettingsClient({
               <ShieldCheck className="h-5 w-5" />
             </div>
 
-            <h2 className="mt-5 text-sm font-semibold">
+            <h2 className="mt-[var(--space-section-small)] text-sm font-semibold">
               Access role
             </h2>
 
@@ -1024,7 +1024,7 @@ export default function SettingsClient({
               }
             </span>
 
-            <p className="mt-4 text-xs leading-6 text-[var(--text-muted)]">
+            <p className="mt-[var(--space-section-small)] text-xs leading-6 text-[var(--text-muted)]">
               Your workspace
               permissions are managed
               by administrators.
@@ -1038,13 +1038,13 @@ export default function SettingsClient({
               border
               border-[var(--border)]
               bg-[var(--surface)]
-              p-5
+              p-[var(--space-card)]
             "
           >
             <div
               className="
                 grid
-                h-11
+                h-[var(--control-height-lg)]
                 w-11
                 place-items-center
                 rounded-xl
@@ -1055,7 +1055,7 @@ export default function SettingsClient({
               <Laptop className="h-5 w-5" />
             </div>
 
-            <h2 className="mt-5 text-sm font-semibold">
+            <h2 className="mt-[var(--space-section-small)] text-sm font-semibold">
               Security
             </h2>
 
@@ -1071,7 +1071,7 @@ export default function SettingsClient({
               type="button"
               disabled
               className="
-                mt-4
+                mt-[var(--space-section-small)]
                 h-9
                 w-full
                 rounded-lg

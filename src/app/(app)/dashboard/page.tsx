@@ -196,7 +196,7 @@ export default async function DashboardPage() {
                 <span
                   className="
                     grid
-                    h-10
+                    h-[var(--control-height)]
                     w-10
                     place-items-center
                     rounded-xl
@@ -354,7 +354,7 @@ export default async function DashboardPage() {
               justify-between
               border-b
               border-[var(--border)]
-              px-5
+              px-[var(--space-card)]
               py-[var(--space-header-y)]
             "
           >
@@ -409,8 +409,8 @@ export default async function DashboardPage() {
                       className="
                         flex
                         items-center
-                        gap-4
-                        px-5
+                        gap-[var(--space-card-sm)]
+                        px-[var(--space-card)]
                         py-[var(--space-row-y)]
                         transition
 
@@ -472,7 +472,7 @@ export default async function DashboardPage() {
               <span
                 className="
                   grid
-                  h-10
+                  h-[var(--control-height)]
                   w-10
                   place-items-center
                   rounded-xl
@@ -483,7 +483,7 @@ export default async function DashboardPage() {
                 <Trophy className="h-[18px] w-[18px]" />
               </span>
 
-              <div className="mt-4 flex items-end gap-2">
+              <div className="mt-[var(--space-section-small)] flex items-end gap-2">
                 <span
                   className="
                     text-3xl
@@ -520,7 +520,7 @@ export default async function DashboardPage() {
               <Link
                 href="/profile"
                 className="
-                  mt-4
+                  mt-[var(--space-section-small)]
                   inline-flex
                   items-center
                   gap-2
@@ -686,7 +686,7 @@ export default async function DashboardPage() {
             className="
               border-b
               border-[var(--border)]
-              px-5
+              px-[var(--space-card)]
               py-[var(--space-header-y)]
             "
           >
@@ -716,7 +716,7 @@ export default async function DashboardPage() {
                     className="
                       flex
                       gap-3
-                      px-5
+                      px-[var(--space-card)]
                       py-[var(--space-row-y)]
                     "
                   >
@@ -768,7 +768,7 @@ export default async function DashboardPage() {
               justify-between
               border-b
               border-[var(--border)]
-              px-5
+              px-[var(--space-card)]
               py-[var(--space-header-y)]
             "
           >
@@ -803,8 +803,8 @@ export default async function DashboardPage() {
                     className="
                       flex
                       items-center
-                      gap-4
-                      px-5
+                      gap-[var(--space-card-sm)]
+                      px-[var(--space-card)]
                       py-[var(--space-row-y)]
                       transition
 

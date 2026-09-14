@@ -180,7 +180,7 @@ export default function SnippetDetailClient({
 
           <div
             className="
-              mt-4
+              mt-[var(--space-section-small)]
               text-xs
               text-[var(--text-muted)]
             "

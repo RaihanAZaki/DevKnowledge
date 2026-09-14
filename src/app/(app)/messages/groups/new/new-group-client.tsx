@@ -169,7 +169,7 @@ export default function NewGroupClient({
         Group chats
       </Link>
 
-      <div className="mt-6">
+      <div className="mt-[var(--space-section)]">
         <h1 className="text-2xl font-semibold tracking-[-0.03em]">
           Create group
         </h1>
@@ -181,13 +181,13 @@ export default function NewGroupClient({
       </div>
 
       {error && (
-        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div className="mt-[var(--space-section-small)] rounded-xl border border-red-200 bg-red-50 px-[var(--space-inline)] py-[var(--space-row-y)] text-sm text-red-600">
           {error}
         </div>
       )}
 
-      <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-        <div className="space-y-5 p-5">
+      <div className="mt-[var(--space-section)] rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+        <div className="space-y-[var(--space-section-small)] p-[var(--space-card)]">
           <div>
             <label className="mb-1.5 block text-xs font-medium">
               Group name
@@ -204,7 +204,7 @@ export default function NewGroupClient({
                 )
               }
               placeholder="Backend Team"
-              className="field h-11 w-full px-3 text-sm"
+              className="field h-[var(--control-height-lg)] w-full px-3 text-sm"
             />
           </div>
 
@@ -232,7 +232,7 @@ export default function NewGroupClient({
           </div>
         </div>
 
-        <div className="border-t border-[var(--border)] p-5">
+        <div className="border-t border-[var(--border)] p-[var(--space-card)]">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold">
@@ -250,7 +250,7 @@ export default function NewGroupClient({
             <Users className="h-4 w-4 text-[var(--text-muted)]" />
           </div>
 
-          <div className="relative mt-4">
+          <div className="relative mt-[var(--space-section-small)]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
 
             <input
@@ -264,7 +264,7 @@ export default function NewGroupClient({
                 )
               }
               placeholder="Search friends..."
-              className="field h-10 w-full pl-9 pr-3 text-sm"
+              className="field h-[var(--control-height)] w-full pl-9 pr-3 text-sm"
             />
           </div>
 
@@ -365,10 +365,10 @@ export default function NewGroupClient({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[var(--border)] p-5">
+        <div className="flex justify-end gap-2 border-t border-[var(--border)] p-[var(--space-card)]">
           <Link
             href="/messages/groups"
-            className="inline-flex h-10 items-center rounded-xl border border-[var(--border)] px-4 text-sm font-medium"
+            className="inline-flex h-[var(--control-height)] items-center rounded-xl border border-[var(--border)] px-[var(--space-inline)] text-sm font-medium"
           >
             Cancel
           </Link>
@@ -385,7 +385,7 @@ export default function NewGroupClient({
             onClick={
               create
             }
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--text)] px-4 text-sm font-medium text-[var(--background)] disabled:opacity-50"
+            className="inline-flex h-[var(--control-height)] items-center gap-2 rounded-xl bg-[var(--text)] px-[var(--space-inline)] text-sm font-medium text-[var(--background)] disabled:opacity-50"
           >
             {saving && (
               <LoaderCircle className="h-4 w-4 animate-spin" />

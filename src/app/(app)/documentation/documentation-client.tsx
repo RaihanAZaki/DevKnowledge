@@ -212,21 +212,22 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
   href="/documentation/new"
   className="
     inline-flex
-    h-10
+    h-[var(--control-height)]
     items-center
     justify-center
     gap-2
     rounded-xl
     border
     border-[var(--border)]
-    bg-white
-    px-4
+    bg-[var(--surface)]
+    px-[var(--space-inline)]
     text-sm
     font-medium
     text-[var(--text)]
     shadow-sm
     transition-all
     hover:border-[var(--primary)]
+    hover:bg-[var(--primary)]
     hover:text-white
     hover:shadow-md
   "
@@ -238,11 +239,11 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
       />
 
       {/* TABS + FILTERS */}
-      <div className="mb-7 border-b border-[var(--border)]">
-        <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-end md:justify-between">
+      <div className="mb-[var(--space-section)] border-b border-[var(--border)]">
+        <div className="flex flex-col gap-[var(--space-card-sm)] pb-[var(--space-section-small)] md:flex-row md:items-end md:justify-between">
           
           {/* TABS */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-[var(--space-section)]">
             <button
               type="button"
               onClick={() => changeScope("mine")}
@@ -281,7 +282,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
             
             {/* SEARCH */}
             <div
-              className={`flex h-10 items-center overflow-hidden rounded-xl border bg-[var(--surface)] transition-all duration-300 ${
+              className={`flex h-[var(--control-height)] items-center overflow-hidden rounded-xl border bg-[var(--surface)] transition-all duration-300 ${
                 searchOpen
                   ? "w-64 border-[var(--primary)] px-2"
                   : "w-10 border-[var(--border)]"
@@ -290,7 +291,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                className="grid h-10 w-10 shrink-0 place-items-center"
+                className="grid h-[var(--control-height)] w-10 shrink-0 place-items-center"
                 aria-label="Search documentation"
               >
                 <Search className="h-4 w-4" />
@@ -334,7 +335,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
                   setCategoryOpen((current) => !current);
                   setLanguageOpen(false);
                 }}
-                className={`flex h-10 items-center gap-2 rounded-xl border px-3 transition ${
+                className={`flex h-[var(--control-height)] items-center gap-2 rounded-xl border px-3 transition ${
                   categories.length > 0
                     ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
                     : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]"
@@ -424,7 +425,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
                   setLanguageOpen((current) => !current);
                   setCategoryOpen(false);
                 }}
-                className={`flex h-10 items-center gap-2 rounded-xl border px-3 transition ${
+                className={`flex h-[var(--control-height)] items-center gap-2 rounded-xl border px-3 transition ${
                   selectedLanguages.length > 0
                     ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
                     : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]"
@@ -453,7 +454,7 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
                   </div>
 
                   {availableLanguages.length === 0 ? (
-                    <div className="px-2.5 py-3 text-sm text-[var(--text-muted)]">
+                    <div className="px-2.5 py-[var(--space-row-y)] text-sm text-[var(--text-muted)]">
                       No languages available.
                     </div>
                   ) : (
@@ -539,22 +540,22 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
           }
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-[var(--space-card-sm)] lg:grid-cols-2">
           {filtered.map((item) => (
             <Link
               href={`/documentation/${item.id}`}
               key={item.id}
-              className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow)]"
+              className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-[var(--space-card)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow)]"
             >
               <div className="flex items-start justify-between">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]">
+                <span className="grid h-[var(--control-height)] w-10 place-items-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]">
                   <BookOpenText className="h-[18px] w-[18px]" />
                 </span>
 
                 <ArrowRight className="h-4 w-4 text-[var(--text-muted)] transition group-hover:translate-x-1" />
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-[var(--space-section-small)] flex flex-wrap gap-2">
                 <Badge>
                   {CATEGORY_LABEL[item.category]}
                 </Badge>
@@ -582,11 +583,11 @@ export default function DocumentationClient({ initialItems }: { initialItems: Do
                 {item.title}
               </h2>
 
-              <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-6 text-[var(--text-soft)]">
+              <p className="mt-2 line-clamp-2 min-h-[var(--control-height)] text-sm leading-6 text-[var(--text-soft)]">
                 {item.excerpt || "No excerpt provided."}
               </p>
 
-              <div className="mt-4 text-xs text-[var(--text-muted)]">
+              <div className="mt-[var(--space-section-small)] text-xs text-[var(--text-muted)]">
                 {item.author.name} ·{" "}
                 {formatDate(item.updatedAt)}
               </div>

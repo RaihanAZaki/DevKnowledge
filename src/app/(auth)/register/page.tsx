@@ -32,19 +32,19 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6 py-12">
+    <div className="flex min-h-screen items-center justify-center px-[var(--space-section)] py-12">
       <div className="w-full max-w-[440px]">
         <Link href="/" className="mb-10 inline-flex items-center gap-2.5 font-semibold"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--text)] text-[var(--surface)]"><Sparkles className="h-4 w-4" /></span> DevKnowledge</Link>
         <h1 className="text-3xl font-semibold tracking-[-0.04em]">Create your workspace account</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">Start documenting changes while the context is still fresh.</p>
-        <form onSubmit={submit} className="mt-8 space-y-5">
+        <form onSubmit={submit} className="mt-8 space-y-[var(--space-section-small)]">
           <div><Label>Full name</Label><Input name="name" placeholder="Your name" required /></div>
           <div><Label>Email</Label><Input name="email" type="email" placeholder="you@company.com" required /></div>
           <div><Label>Password</Label><Input name="password" type="password" minLength={8} placeholder="Minimum 8 characters" required /></div>
-          {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">{error}</div> : null}
+          {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-[var(--space-row-y)] text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">{error}</div> : null}
           <Button className="w-full" disabled={loading}>{loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null} Create account <ArrowRight className="h-4 w-4" /></Button>
         </form>
-        <p className="mt-7 text-center text-sm text-[var(--text-soft)]">Already have an account? <Link href="/login" className="font-medium text-[var(--text)] underline decoration-[var(--border-strong)] underline-offset-4">Sign in</Link></p>
+        <p className="mt-[var(--space-section)] text-center text-sm text-[var(--text-soft)]">Already have an account? <Link href="/login" className="font-medium text-[var(--text)] underline decoration-[var(--border-strong)] underline-offset-4">Sign in</Link></p>
       </div>
     </div>
   );

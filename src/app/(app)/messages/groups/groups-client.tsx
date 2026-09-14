@@ -76,7 +76,7 @@ export default function GroupsClient({
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="flex flex-col justify-between gap-[var(--space-card-sm)] sm:flex-row sm:items-end">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--primary)]">
             Messages
@@ -96,13 +96,13 @@ export default function GroupsClient({
           href="/messages/groups/new"
           className="
             inline-flex
-            h-10
+            h-[var(--control-height)]
             items-center
             justify-center
             gap-2
             rounded-xl
             bg-[var(--text)]
-            px-4
+            px-[var(--space-inline)]
             text-sm
             font-medium
             text-[var(--background)]
@@ -114,7 +114,7 @@ export default function GroupsClient({
         </Link>
       </div>
 
-      <div className="relative mt-6">
+      <div className="relative mt-[var(--space-section)]">
         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
 
         <input
@@ -130,7 +130,7 @@ export default function GroupsClient({
           placeholder="Search groups..."
           className="
             field
-            h-11
+            h-[var(--control-height-lg)]
             w-full
             pl-10
             pr-4
@@ -141,7 +141,7 @@ export default function GroupsClient({
 
       <div
         className="
-          mt-6
+          mt-[var(--space-section)]
           overflow-hidden
           rounded-2xl
           border
@@ -151,12 +151,12 @@ export default function GroupsClient({
       >
         {filtered.length ===
         0 ? (
-          <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+          <div className="flex min-h-72 flex-col items-center justify-center px-[var(--space-section)] text-center">
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]">
               <Users className="h-6 w-6" />
             </div>
 
-            <h2 className="mt-4 font-semibold">
+            <h2 className="mt-[var(--space-section-small)] font-semibold">
               No group chats yet
             </h2>
 
@@ -184,9 +184,9 @@ export default function GroupsClient({
                       group
                       flex
                       items-center
-                      gap-4
-                      px-5
-                      py-4
+                      gap-[var(--space-card-sm)]
+                      px-[var(--space-card)]
+                      py-[var(--space-row-y)]
                       transition
                       hover:bg-[var(--surface-soft)]
                     "
@@ -194,7 +194,7 @@ export default function GroupsClient({
                     <div
                       className="
                         grid
-                        h-11
+                        h-[var(--control-height-lg)]
                         w-11
                         shrink-0
                         place-items-center

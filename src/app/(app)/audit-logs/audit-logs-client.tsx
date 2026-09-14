@@ -307,10 +307,10 @@ export default function AuditLogsClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[var(--space-section)]">
       {/* HEADER */}
 
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="flex flex-col justify-between gap-[var(--space-card-sm)] sm:flex-row sm:items-end">
         <div>
           <div
             className="
@@ -364,7 +364,7 @@ export default function AuditLogsClient({
           }
           className="
             inline-flex
-            h-10
+            h-[var(--control-height)]
             items-center
             justify-center
             gap-2
@@ -372,7 +372,7 @@ export default function AuditLogsClient({
             border
             border-[var(--border)]
             bg-[var(--surface)]
-            px-4
+            px-[var(--space-inline)]
             text-sm
             font-medium
             transition
@@ -400,7 +400,7 @@ export default function AuditLogsClient({
           justify-end
           border-b
           border-[var(--border)]
-          pb-5
+          pb-[var(--space-section-small)]
         "
       >
         <div
@@ -417,7 +417,7 @@ export default function AuditLogsClient({
           <div
             className={`
               flex
-              h-10
+              h-[var(--control-height)]
               items-center
               overflow-hidden
               rounded-xl
@@ -449,7 +449,7 @@ export default function AuditLogsClient({
               }}
               className="
                 grid
-                h-10
+                h-[var(--control-height)]
                 w-10
                 shrink-0
                 place-items-center
@@ -507,7 +507,7 @@ export default function AuditLogsClient({
                   }}
                   className="
                     grid
-                    h-10
+                    h-[var(--control-height)]
                     w-9
                     place-items-center
                     text-[var(--text-muted)]
@@ -542,7 +542,7 @@ export default function AuditLogsClient({
               }}
               className={`
                 flex
-                h-10
+                h-[var(--control-height)]
                 items-center
                 gap-2
                 rounded-xl
@@ -698,7 +698,7 @@ export default function AuditLogsClient({
               }}
               className={`
                 flex
-                h-10
+                h-[var(--control-height)]
                 items-center
                 gap-2
                 rounded-xl
@@ -844,7 +844,7 @@ export default function AuditLogsClient({
               title="Reset filters"
               className="
                 grid
-                h-10
+                h-[var(--control-height)]
                 w-10
                 place-items-center
                 rounded-xl
@@ -888,7 +888,7 @@ export default function AuditLogsClient({
               flex-col
               items-center
               justify-center
-              px-6
+              px-[var(--space-section)]
               text-center
             "
           >
@@ -905,7 +905,7 @@ export default function AuditLogsClient({
               <FileText className="h-5 w-5 text-[var(--text-muted)]" />
             </div>
 
-            <h2 className="mt-4 text-sm font-semibold">
+            <h2 className="mt-[var(--space-section-small)] text-sm font-semibold">
               No audit logs found
             </h2>
 
@@ -940,23 +940,23 @@ export default function AuditLogsClient({
                       text-left
                     "
                   >
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <th className="px-[var(--space-card)] py-[var(--space-row-y)] text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                       User
                     </th>
 
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <th className="px-[var(--space-card)] py-[var(--space-row-y)] text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                       Action
                     </th>
 
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <th className="px-[var(--space-card)] py-[var(--space-row-y)] text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                       Entity
                     </th>
 
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <th className="px-[var(--space-card)] py-[var(--space-row-y)] text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                       Description
                     </th>
 
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    <th className="px-[var(--space-card)] py-[var(--space-row-y)] text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                       Date
                     </th>
                   </tr>
@@ -974,7 +974,7 @@ export default function AuditLogsClient({
                           hover:bg-[var(--surface-soft)]
                         "
                       >
-                        <td className="px-5 py-4 align-top">
+                        <td className="px-[var(--space-card)] py-[var(--space-row-y)] align-top">
                           <div className="text-sm font-medium">
                             {
                               log
@@ -992,7 +992,7 @@ export default function AuditLogsClient({
                           </div>
                         </td>
 
-                        <td className="px-5 py-4 align-top">
+                        <td className="px-[var(--space-card)] py-[var(--space-row-y)] align-top">
                           <Badge
                             tone={actionTone(
                               log.action,
@@ -1004,7 +1004,7 @@ export default function AuditLogsClient({
                           </Badge>
                         </td>
 
-                        <td className="px-5 py-4 align-top">
+                        <td className="px-[var(--space-card)] py-[var(--space-row-y)] align-top">
                           <div className="text-xs font-medium text-[var(--text-soft)]">
                             {
                               log.entity
@@ -1012,7 +1012,7 @@ export default function AuditLogsClient({
                           </div>
                         </td>
 
-                        <td className="max-w-md px-5 py-4 align-top">
+                        <td className="max-w-md px-[var(--space-card)] py-[var(--space-row-y)] align-top">
                           <div className="text-sm leading-6">
                             {
                               log.description
@@ -1040,8 +1040,8 @@ export default function AuditLogsClient({
                         <td
                           className="
                             whitespace-nowrap
-                            px-5
-                            py-4
+                            px-[var(--space-card)]
+                            py-[var(--space-row-y)]
                             align-top
                             text-xs
                             text-[var(--text-muted)]
@@ -1065,8 +1065,8 @@ export default function AuditLogsClient({
                 justify-between
                 border-t
                 border-[var(--border)]
-                px-5
-                py-4
+                px-[var(--space-card)]
+                py-[var(--space-row-y)]
               "
             >
               <div className="text-xs text-[var(--text-muted)]">

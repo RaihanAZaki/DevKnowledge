@@ -162,21 +162,22 @@ export default function ForumClient({
             href="/forum/new"
             className="
                inline-flex
-    h-10
+    h-[var(--control-height)]
     items-center
     justify-center
     gap-2
     rounded-xl
     border
     border-[var(--border)]
-    bg-white
-    px-4
+    bg-[var(--surface)]
+    px-[var(--space-inline)]
     text-sm
     font-medium
     text-[var(--text)]
     shadow-sm
     transition-all
     hover:border-[var(--primary)]
+    hover:bg-[var(--primary)]
     hover:text-white
     hover:shadow-md
   ">
@@ -191,12 +192,12 @@ export default function ForumClient({
 
       <div
         className="
-          mb-7
+          mb-[var(--space-section)]
           flex
           justify-end
           border-b
           border-[var(--border)]
-          pb-5
+          pb-[var(--space-section-small)]
         "
       >
         <div
@@ -211,7 +212,7 @@ export default function ForumClient({
           <div
             className={`
               flex
-              h-10
+              h-[var(--control-height)]
               items-center
               overflow-hidden
               rounded-xl
@@ -233,7 +234,7 @@ export default function ForumClient({
               }
               className="
                 grid
-                h-10
+                h-[var(--control-height)]
                 w-10
                 shrink-0
                 place-items-center
@@ -277,7 +278,7 @@ export default function ForumClient({
                   }}
                   className="
                     grid
-                    h-10
+                    h-[var(--control-height)]
                     w-9
                     place-items-center
                     text-[var(--text-muted)]
@@ -304,7 +305,7 @@ export default function ForumClient({
               }
               className={`
                 flex
-                h-10
+                h-[var(--control-height)]
                 items-center
                 gap-2
                 rounded-xl
@@ -496,9 +497,9 @@ export default function ForumClient({
                 className="
                   group
                   flex
-                  gap-4
-                  px-5
-                  py-5
+                  gap-[var(--space-card-sm)]
+                  px-[var(--space-card)]
+                  py-[var(--space-card)]
                   transition
                   hover:bg-[var(--surface-soft)]
                 "

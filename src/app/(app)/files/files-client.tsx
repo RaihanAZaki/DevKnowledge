@@ -179,7 +179,7 @@ function FileIcon({
 
           ${
             large
-              ? "h-10 w-10"
+              ? "h-[var(--control-height)] w-10"
               : "h-9 w-9"
           }
         `}
@@ -204,7 +204,7 @@ function FileIcon({
 
           ${
             large
-              ? "h-10 w-10"
+              ? "h-[var(--control-height)] w-10"
               : "h-9 w-9"
           }
         `}
@@ -228,7 +228,7 @@ function FileIcon({
 
         ${
           large
-            ? "h-10 w-10"
+            ? "h-[var(--control-height)] w-10"
             : "h-9 w-9"
         }
       `}
@@ -471,7 +471,7 @@ export default function FilesClient({
         className="
           flex
           flex-col
-          gap-4
+          gap-[var(--space-card-sm)]
 
           sm:flex-row
           sm:items-center
@@ -513,15 +513,15 @@ export default function FilesClient({
           }
           className="
             inline-flex
-            h-10
+            h-[var(--control-height)]
             items-center
             justify-center
             gap-2
             rounded-xl
             border
             border-[var(--border)]
-            bg-white
-            px-4
+            bg-[var(--surface)]
+            px-[var(--space-inline)]
             text-sm
             font-medium
             text-[var(--text)]
@@ -583,13 +583,13 @@ export default function FilesClient({
       {error ? (
         <div
           className="
-            mt-5
+            mt-[var(--space-section-small)]
             rounded-xl
             border
             border-red-200
             bg-red-50
-            px-4
-            py-3
+            px-[var(--space-inline)]
+            py-[var(--space-row-y)]
             text-sm
             text-red-600
           "
@@ -639,7 +639,7 @@ export default function FilesClient({
             <UploadCloud className="h-6 w-6" />
           </div>
 
-          <h2 className="mt-4 font-semibold">
+          <h2 className="mt-[var(--space-section-small)] font-semibold">
             Upload your first
             file
           </h2>
@@ -673,7 +673,7 @@ export default function FilesClient({
         /* FILE LIST */
         <div
           className="
-            mt-7
+            mt-[var(--space-section)]
             overflow-hidden
             rounded-2xl
             border
@@ -685,10 +685,10 @@ export default function FilesClient({
             className="
               border-b
               border-[var(--border)]
-              px-4
-              py-4
+              px-[var(--space-inline)]
+              py-[var(--space-row-y)]
 
-              sm:px-5
+              sm:px-[var(--space-card)]
             "
           >
             <div
@@ -730,13 +730,13 @@ export default function FilesClient({
                     items-center
                     gap-3
                     px-3
-                    py-3.5
+                    py-[var(--space-row-y)].5
                     transition
                     hover:bg-[var(--surface-soft)]
 
-                    sm:gap-4
-                    sm:px-5
-                    sm:py-4
+                    sm:gap-[var(--space-card-sm)]
+                    sm:px-[var(--space-card)]
+                    sm:py-[var(--space-row-y)]
                   "
                 >
                   {/* THUMBNAIL */}
@@ -751,7 +751,7 @@ export default function FilesClient({
                         )
                       }
                       className="
-                        h-11
+                        h-[var(--control-height-lg)]
                         w-11
                         shrink-0
                         overflow-hidden
@@ -1011,7 +1011,7 @@ export default function FilesClient({
                 gap-3
                 border-b
                 border-[var(--border)]
-                px-4
+                px-[var(--space-inline)]
               "
             >
               <FileIcon
@@ -1087,7 +1087,7 @@ export default function FilesClient({
                 bg-[var(--surface-soft)]
                 p-3
 
-                sm:p-4
+                sm:p-[var(--space-card-sm)]
               "
             >
               {isImage(
@@ -1126,7 +1126,7 @@ export default function FilesClient({
                     h-[72dvh]
                     w-full
                     rounded-xl
-                    bg-white
+                    bg-[var(--surface)]
                   "
                 />
               ) : null}
@@ -1146,7 +1146,7 @@ export default function FilesClient({
             items-center
             justify-center
             bg-black/40
-            px-4
+            px-[var(--space-inline)]
             backdrop-blur-sm
           "
           onClick={() => {
@@ -1193,7 +1193,7 @@ export default function FilesClient({
 
               <h2
                 className="
-                  mt-5
+                  mt-[var(--space-section-small)]
                   text-lg
                   font-semibold
                   tracking-[-0.02em]
@@ -1226,12 +1226,12 @@ export default function FilesClient({
 
               <div
                 className="
-                  mt-6
+                  mt-[var(--space-section)]
                   rounded-xl
                   border
                   border-[var(--border)]
                   bg-[var(--surface-soft)]
-                  p-4
+                  p-[var(--space-card-sm)]
                 "
               >
                 <div className="flex items-center gap-3">
@@ -1271,8 +1271,8 @@ export default function FilesClient({
                 border-t
                 border-[var(--border)]
                 bg-[var(--surface-soft)]
-                px-6
-                py-4
+                px-[var(--space-section)]
+                py-[var(--space-row-y)]
               "
             >
               <button
@@ -1292,7 +1292,7 @@ export default function FilesClient({
                   border
                   border-[var(--border)]
                   bg-[var(--surface)]
-                  px-4
+                  px-[var(--space-inline)]
                   text-sm
                   font-medium
                   transition
@@ -1321,7 +1321,7 @@ export default function FilesClient({
                   gap-2
                   rounded-lg
                   bg-red-500
-                  px-4
+                  px-[var(--space-inline)]
                   text-sm
                   font-medium
                   text-white

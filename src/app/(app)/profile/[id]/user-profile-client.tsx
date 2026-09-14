@@ -328,7 +328,7 @@ export default function UserProfileClient({
               )}
 
               {/* NAME */}
-              <h1 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">
+              <h1 className="mt-[var(--space-section-small)] text-2xl font-semibold tracking-[-0.03em]">
                 {profile.name}
               </h1>
 
@@ -342,7 +342,7 @@ export default function UserProfileClient({
                 <p
                   className="
                     mx-auto
-                    mt-4
+                    mt-[var(--space-section-small)]
                     max-w-md
                     text-sm
                     leading-6
@@ -355,13 +355,13 @@ export default function UserProfileClient({
                   {profile.bio}
                 </p>
               ) : (
-                <p className="mt-4 text-sm italic text-[var(--text-muted)]">
+                <p className="mt-[var(--space-section-small)] text-sm italic text-[var(--text-muted)]">
                   No bio added yet.
                 </p>
               )}
 
               {/* FRIENDSHIP ACTION */}
-              <div className="mt-5 w-full max-w-sm lg:max-w-none">
+              <div className="mt-[var(--space-section-small)] w-full max-w-sm lg:max-w-none">
                 {friendship.status === "NONE" ? (
                   <button
                     type="button"
@@ -371,14 +371,14 @@ export default function UserProfileClient({
                     }
                     className="
                       inline-flex
-                      h-10
+                      h-[var(--control-height)]
                       w-full
                       items-center
                       justify-center
                       gap-2
                       rounded-xl
                       bg-[var(--primary)]
-                      px-4
+                      px-[var(--space-inline)]
                       text-sm
                       font-medium
                       text-white
@@ -404,7 +404,7 @@ export default function UserProfileClient({
                   <div
                     className="
                       flex
-                      h-10
+                      h-[var(--control-height)]
                       w-full
                       items-center
                       justify-center
@@ -434,7 +434,7 @@ export default function UserProfileClient({
                       }
                       className="
                         inline-flex
-                        h-10
+                        h-[var(--control-height)]
                         items-center
                         justify-center
                         gap-2
@@ -466,7 +466,7 @@ export default function UserProfileClient({
                       }
                       className="
                         inline-flex
-                        h-10
+                        h-[var(--control-height)]
                         items-center
                         justify-center
                         gap-2
@@ -492,7 +492,7 @@ export default function UserProfileClient({
                   <div
                     className="
                       flex
-                      h-10
+                      h-[var(--control-height)]
                       w-full
                       items-center
                       justify-center
@@ -515,7 +515,7 @@ export default function UserProfileClient({
                     href="/profile"
                     className="
                       flex
-                      h-10
+                      h-[var(--control-height)]
                       w-full
                       items-center
                       justify-center
@@ -535,7 +535,7 @@ export default function UserProfileClient({
               </div>
 
               {/* INFO */}
-              <div className="mt-5 space-y-2.5 text-sm text-[var(--text-soft)]">
+              <div className="mt-[var(--space-section-small)] space-y-2.5 text-sm text-[var(--text-soft)]">
                 <div className="flex items-center justify-center gap-2 lg:justify-start">
                   <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 
@@ -563,14 +563,14 @@ export default function UserProfileClient({
         <main className="min-w-0">
           {/* OVERVIEW TAB */}
           <div className="border-b border-[var(--border)]">
-            <div className="inline-flex items-center gap-2 border-b-2 border-[var(--text)] px-4 pb-3 text-sm font-medium">
+            <div className="inline-flex items-center gap-2 border-b-2 border-[var(--text)] px-[var(--space-inline)] pb-3 text-sm font-medium">
               <UserRound className="h-4 w-4" />
               Overview
             </div>
           </div>
 
           {/* CONTRIBUTIONS */}
-          <section className="mt-6">
+          <section className="mt-[var(--space-section)]">
             <h2 className="mb-3 text-sm font-semibold">
               DevKnowledge contributions
             </h2>
@@ -623,7 +623,7 @@ export default function UserProfileClient({
             </div>
 
             {/* MOBILE */}
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:hidden">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-[var(--space-card-sm)] md:hidden">
               <div className="grid grid-cols-7 gap-1.5">
                 {Array.from({
                   length: 35,
@@ -645,7 +645,7 @@ export default function UserProfileClient({
             </div>
 
             {/* DESKTOP */}
-            <div className="hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:block">
+            <div className="hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-[var(--space-card-sm)] md:block">
               <div className="grid grid-cols-14 gap-1 lg:grid-cols-20">
                 {Array.from({
                   length: 140,
@@ -680,7 +680,7 @@ export default function UserProfileClient({
 
             <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
               {activities.length === 0 ? (
-                <div className="px-5 py-10 text-center text-sm text-[var(--text-muted)]">
+                <div className="px-[var(--space-card)] py-10 text-center text-sm text-[var(--text-muted)]">
                   No public contributions yet.
                 </div>
               ) : (
@@ -733,7 +733,7 @@ function StatCard({
         hover:border-[var(--border-strong)]
         hover:shadow-sm
 
-        sm:p-4
+        sm:p-[var(--space-card-sm)]
       "
     >
       <div className="flex items-center justify-between gap-2">
@@ -744,7 +744,7 @@ function StatCard({
         </span>
       </div>
 
-      <div className="mt-3 truncate text-[10px] font-medium text-[var(--text-soft)] sm:mt-4 sm:text-xs">
+      <div className="mt-3 truncate text-[10px] font-medium text-[var(--text-soft)] sm:mt-[var(--space-section-small)] sm:text-xs">
         {label}
       </div>
     </Link>
@@ -823,15 +823,15 @@ function ContributionRow({
         flex
         items-center
         gap-3
-        px-4
-        py-3.5
+        px-[var(--space-inline)]
+        py-[var(--space-row-y)].5
         transition
 
         hover:bg-[var(--surface-soft)]
 
-        sm:gap-4
-        sm:px-5
-        sm:py-4
+        sm:gap-[var(--space-card-sm)]
+        sm:px-[var(--space-card)]
+        sm:py-[var(--space-row-y)]
       "
     >
       <div className="min-w-0 flex-1">

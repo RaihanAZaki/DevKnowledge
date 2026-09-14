@@ -291,7 +291,7 @@ export default function GroupChatClient({
       {/* CHAT */}
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--border)] px-5">
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--border)] px-[var(--space-card)]">
           <Link
             href="/messages/groups"
             className="grid h-9 w-9 place-items-center rounded-lg transition hover:bg-[var(--surface-soft)]"
@@ -319,8 +319,8 @@ export default function GroupChatClient({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
-          <div className="mx-auto max-w-3xl space-y-4">
+        <div className="flex-1 overflow-y-auto px-[var(--space-card)] py-[var(--space-card)]">
+          <div className="mx-auto max-w-3xl space-y-[var(--space-section-small)]">
             {messages.map(
               (message) => {
                 const own =
@@ -361,7 +361,7 @@ export default function GroupChatClient({
                         className={`
                           inline-block
                           rounded-2xl
-                          px-4
+                          px-[var(--space-inline)]
                           py-2.5
                           text-left
                           text-sm
@@ -398,7 +398,7 @@ export default function GroupChatClient({
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-[var(--border)] p-4">
+        <div className="shrink-0 border-t border-[var(--border)] p-[var(--space-card-sm)]">
           <div className="mx-auto flex max-w-3xl items-end gap-2">
             <textarea
               value={content}
@@ -425,7 +425,7 @@ export default function GroupChatClient({
               }}
               rows={1}
               placeholder="Type a message..."
-              className="field min-h-11 max-h-32 flex-1 resize-none px-3 py-2.5 text-sm"
+              className="field min-h-[var(--control-height-lg)] max-h-32 flex-1 resize-none px-3 py-2.5 text-sm"
             />
 
             <button
@@ -437,7 +437,7 @@ export default function GroupChatClient({
               onClick={
                 send
               }
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--text)] text-[var(--background)] disabled:opacity-40"
+              className="grid h-[var(--control-height-lg)] w-11 shrink-0 place-items-center rounded-xl bg-[var(--text)] text-[var(--background)] disabled:opacity-40"
             >
               {sending ? (
                 <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -452,7 +452,7 @@ export default function GroupChatClient({
       {/* MEMBERS */}
 
       <aside className="hidden w-72 shrink-0 border-l border-[var(--border)] lg:block">
-        <div className="border-b border-[var(--border)] p-5">
+        <div className="border-b border-[var(--border)] p-[var(--space-card)]">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4" />
 
@@ -528,7 +528,7 @@ export default function GroupChatClient({
                   true,
                 )
               }
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-red-500 transition hover:bg-red-50"
+              className="flex h-[var(--control-height)] w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-red-500 transition hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" />
 
@@ -540,7 +540,7 @@ export default function GroupChatClient({
               onClick={
                 leave
               }
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-red-500 transition hover:bg-red-50"
+              className="flex h-[var(--control-height)] w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-red-500 transition hover:bg-red-50"
             >
               <LogOut className="h-4 w-4" />
 
@@ -553,14 +553,14 @@ export default function GroupChatClient({
       {/* DELETE MODAL */}
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-[var(--space-inline)] backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
             <div className="p-6">
               <div className="grid h-12 w-12 place-items-center rounded-xl bg-red-50 text-red-500">
                 <Trash2 className="h-5 w-5" />
               </div>
 
-              <h2 className="mt-5 text-lg font-semibold">
+              <h2 className="mt-[var(--space-section-small)] text-lg font-semibold">
                 Delete group?
               </h2>
 
@@ -578,7 +578,7 @@ export default function GroupChatClient({
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--surface-soft)] px-6 py-4">
+            <div className="flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--surface-soft)] px-[var(--space-section)] py-[var(--space-row-y)]">
               <button
                 type="button"
                 disabled={
@@ -589,7 +589,7 @@ export default function GroupChatClient({
                     false,
                   )
                 }
-                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium"
+                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-[var(--space-inline)] text-sm font-medium"
               >
                 Cancel
               </button>
@@ -602,7 +602,7 @@ export default function GroupChatClient({
                 onClick={
                   removeGroup
                 }
-                className="inline-flex h-9 items-center gap-2 rounded-lg bg-red-500 px-4 text-sm font-medium text-white disabled:opacity-50"
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-red-500 px-[var(--space-inline)] text-sm font-medium text-white disabled:opacity-50"
               >
                 {deleting ? (
                   <LoaderCircle className="h-4 w-4 animate-spin" />

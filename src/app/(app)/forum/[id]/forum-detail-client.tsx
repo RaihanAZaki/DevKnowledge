@@ -336,7 +336,7 @@ export default function ForumDetailClient({
             flex
             items-start
             justify-between
-            gap-4
+            gap-[var(--space-card-sm)]
           "
         >
           <div className="min-w-0 flex-1">
@@ -378,7 +378,7 @@ export default function ForumDetailClient({
 
             <h1
               className="
-                mt-4
+                mt-[var(--space-section-small)]
                 text-3xl
                 font-semibold
                 tracking-[-0.04em]
@@ -389,7 +389,7 @@ export default function ForumDetailClient({
 
             <p
               className="
-                mt-5
+                mt-[var(--space-section-small)]
                 whitespace-pre-wrap
                 text-sm
                 leading-7
@@ -401,7 +401,7 @@ export default function ForumDetailClient({
 
             <div
               className="
-                mt-5
+                mt-[var(--space-section-small)]
                 text-xs
                 text-[var(--text-muted)]
               "
@@ -423,7 +423,7 @@ export default function ForumDetailClient({
               0 && (
               <div
                 className="
-                  mt-5
+                  mt-[var(--space-section-small)]
                   flex
                   flex-wrap
                   gap-2
@@ -467,7 +467,7 @@ export default function ForumDetailClient({
                 href={`/forum/${id}/edit`}
                 className="
                   inline-flex
-                  h-10
+                  h-[var(--control-height)]
                   items-center
                   justify-center
                   gap-2
@@ -791,7 +791,7 @@ export default function ForumDetailClient({
                     {comment.isAccepted && (
                       <div
                         className="
-                          mt-4
+                          mt-[var(--space-section-small)]
                           inline-flex
                           items-center
                           gap-2
@@ -894,7 +894,7 @@ export default function ForumDetailClient({
             items-center
             justify-center
             bg-black/40
-            p-4
+            p-[var(--space-card-sm)]
             backdrop-blur-sm
           "
         >
@@ -919,7 +919,7 @@ export default function ForumDetailClient({
               <div
                 className="
                   grid
-                  h-10
+                  h-[var(--control-height)]
                   w-10
                   shrink-0
                   place-items-center
@@ -953,7 +953,7 @@ export default function ForumDetailClient({
 
             <div
               className="
-                mt-6
+                mt-[var(--space-section)]
                 flex
                 justify-end
                 gap-3
@@ -973,7 +973,7 @@ export default function ForumDetailClient({
                   rounded-xl
                   border
                   border-[var(--border)]
-                  px-4
+                  px-[var(--space-inline)]
                   py-2
                   text-sm
                   transition
@@ -998,7 +998,7 @@ export default function ForumDetailClient({
                   gap-2
                   rounded-xl
                   bg-red-500
-                  px-4
+                  px-[var(--space-inline)]
                   py-2
                   text-sm
                   font-medium

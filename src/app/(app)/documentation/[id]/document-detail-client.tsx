@@ -279,7 +279,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
           <Lock className="h-5 w-5 text-[var(--text-muted)]" />
         </div>
 
-        <h1 className="mt-4 text-lg font-semibold">
+        <h1 className="mt-[var(--space-section-small)] text-lg font-semibold">
           Document unavailable
         </h1>
 
@@ -289,7 +289,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
 
         <Link
           href="/documentation"
-          className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--primary)]"
+          className="mt-[var(--space-section-small)] inline-flex items-center gap-2 text-sm font-medium text-[var(--primary)]"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Documentation
@@ -315,14 +315,14 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
       <div className="mx-auto max-w-5xl">
         <Link
           href="/documentation"
-          className="mb-7 inline-flex items-center gap-2 text-sm text-[var(--text-soft)] hover:text-[var(--text)]"
+          className="mb-[var(--space-section)] inline-flex items-center gap-2 text-sm text-[var(--text-soft)] hover:text-[var(--text)]"
         >
           <ArrowLeft className="h-4 w-4" />
           Documentation
         </Link>
 
-        <header className="border-b border-[var(--border)] pb-7">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <header className="border-b border-[var(--border)] pb-[var(--space-section)]">
+          <div className="flex flex-col gap-[var(--space-card)] sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap gap-2">
                 <Badge>
@@ -373,7 +373,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
                 ) : null}
               </div>
 
-              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em]">
+              <h1 className="mt-[var(--space-section-small)] text-4xl font-semibold tracking-[-0.045em]">
                 {d.title}
               </h1>
 
@@ -383,7 +383,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
                 </p>
               ) : null}
 
-              <p className="mt-4 text-xs text-[var(--text-muted)]">
+              <p className="mt-[var(--space-section-small)] text-xs text-[var(--text-muted)]">
                 Written by{" "}
                 {d.author.name} · Updated{" "}
                 {formatDate(
@@ -424,7 +424,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
           </div>
 
           {d.tags.length ? (
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-[var(--space-section-small)] flex flex-wrap gap-2">
               {d.tags.map(
                 (tag) => (
                   <span
@@ -439,7 +439,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
           ) : null}
         </header>
 
-        <article className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-7 sm:px-9 sm:py-9">
+        <article className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-[var(--space-section)] py-7 sm:px-9 sm:py-9">
           <MarkdownContent
             content={d.content}
           />
@@ -448,9 +448,9 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
 
       {shareOpen &&
       isOwner ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-[var(--space-inline)] backdrop-blur-sm">
           <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-[var(--space-card)] py-[var(--space-row-y)]">
               <div>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -484,7 +484,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
                 </div>
               ) : friends.length ===
                 0 ? (
-                <div className="px-5 py-10 text-center">
+                <div className="px-[var(--space-card)] py-10 text-center">
                   <Users className="mx-auto h-5 w-5 text-[var(--text-muted)]" />
 
                   <div className="mt-3 text-sm font-medium">
@@ -510,7 +510,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
                         key={
                           friend.id
                         }
-                        className="flex items-center gap-3 rounded-xl px-3 py-3 transition hover:bg-[var(--surface-soft)]"
+                        className="flex items-center gap-3 rounded-xl px-3 py-[var(--space-row-y)] transition hover:bg-[var(--surface-soft)]"
                       >
                         {friend.avatarUrl ? (
                           <img
@@ -520,10 +520,10 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
                             alt={
                               friend.name
                             }
-                            className="h-10 w-10 shrink-0 rounded-full object-cover"
+                            className="h-[var(--control-height)] w-10 shrink-0 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-soft)] text-xs font-semibold text-[var(--primary)]">
+                          <div className="grid h-[var(--control-height)] w-10 shrink-0 place-items-center rounded-full bg-[var(--primary-soft)] text-xs font-semibold text-[var(--primary)]">
                             {initials(
                               friend.name
                             )}
@@ -590,7 +590,7 @@ export default function DocumentDetailClient({ id, initialData }: { id: string; 
               )}
             </div>
 
-            <div className="border-t border-[var(--border)] px-5 py-4">
+            <div className="border-t border-[var(--border)] px-[var(--space-card)] py-[var(--space-row-y)]">
               <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                 {d.visibility ===
                 "PRIVATE" ? (

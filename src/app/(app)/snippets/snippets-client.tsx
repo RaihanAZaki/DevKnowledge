@@ -140,15 +140,15 @@ export default function SnippetsClient({
             href="/snippets/new"
             className="
               inline-flex
-              h-10
+              h-[var(--control-height)]
               items-center
               justify-center
               gap-2
               rounded-xl
               border
               border-[var(--border)]
-              bg-white
-              px-4
+              bg-[var(--surface)]
+              px-[var(--space-inline)]
               text-sm
               font-medium
               text-[var(--text)]
@@ -190,7 +190,7 @@ export default function SnippetsClient({
           <div
             className={`
               flex
-              h-10
+              h-[var(--control-height)]
               items-center
               overflow-hidden
               rounded-xl
@@ -212,7 +212,7 @@ export default function SnippetsClient({
               }
               className="
                 grid
-                h-10
+                h-[var(--control-height)]
                 w-10
                 shrink-0
                 place-items-center
@@ -256,7 +256,7 @@ export default function SnippetsClient({
                   }}
                   className="
                     grid
-                    h-10
+                    h-[var(--control-height)]
                     w-9
                     place-items-center
                     text-[var(--text-muted)]
@@ -283,7 +283,7 @@ export default function SnippetsClient({
               }
               className={`
                 flex
-                h-10
+                h-[var(--control-height)]
                 items-center
                 gap-2
                 rounded-xl
@@ -481,8 +481,8 @@ export default function SnippetsClient({
                   className="
                     group
                     flex
-                    gap-4
-                    px-5
+                    gap-[var(--space-card-sm)]
+                    px-[var(--space-card)]
                     py-[var(--space-row-y)]
                     transition
 
