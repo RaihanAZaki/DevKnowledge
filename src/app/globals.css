@@ -2,83 +2,46 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* =========================
-     NORMAL DENSITY
-     ========================= */
+  --background: #f7f8fa;
+  --surface: #ffffff;
+  --surface-soft: #f2f4f7;
+  --surface-hover: #eef1f5;
+  --border: #e4e7ec;
+  --border-strong: #d6dae2;
+  --text: #1f2430;
+  --text-soft: #697180;
+  --text-muted: #969dab;
+  --primary: #6877e8;
+  --primary-soft: #eef0ff;
+  --success: #5f9d83;
+  --warning: #b98a3f;
+  --danger: #c96b6b;
+  --shadow: 0 10px 28px rgba(31, 36, 48, 0.055);
 
-  --page-x: 32px;
-  --page-y: 28px;
-
-  --section-gap: 24px;
-  --section-gap-small: 16px;
-
-  --card-padding: 20px;
-  --card-padding-small: 16px;
-
-  --row-x: 20px;
-  --row-y: 16px;
-
-  --control-height: 40px;
-  --control-height-small: 36px;
-
-  --button-x: 16px;
-  --button-gap: 8px;
-
-  --input-height: 40px;
-
-  --radius-card: 16px;
-  --radius-control: 12px;
-
-  /* =========================
-     BACKWARD COMPATIBILITY
-     Jangan dihapus.
-     Komponen existing masih
-     menggunakan variable ini.
-     ========================= */
-
-  --space-page-x: var(--page-x);
-  --space-page-y: var(--page-y);
-
-  --space-section: var(--section-gap);
-  --space-section-small: var(--section-gap-small);
-
-  --space-card: var(--card-padding);
-  --space-card-small: var(--card-padding-small);
-
-  --space-row-x: var(--row-x);
-  --space-row-y: var(--row-y);
+  /* Unified density tokens. These are intentionally compact by default. */
+  --space-card: 1rem;
+  --space-card-sm: 0.875rem;
+  --space-inline: 0.875rem;
+  --space-row-y: 0.75rem;
+  --space-section: 1rem;
+  --space-section-small: 0.75rem;
+  --space-header-y: 0.75rem;
+  --space-quick-action-y: 0.5rem;
+  --control-height: 2.25rem;
+  --control-height-lg: 2.5rem;
 }
 
 html[data-compact="true"] {
-  /* =========================
-     COMPACT DENSITY
-     ========================= */
-
-  --page-x: 24px;
-  --page-y: 22px;
-
-  --section-gap: 18px;
-  --section-gap-small: 14px;
-
-  --card-padding: 16px;
-  --card-padding-small: 14px;
-
-  --row-x: 16px;
-  --row-y: 12px;
-
-  --control-height: 36px;
-  --control-height-small: 34px;
-
-  --button-x: 14px;
-  --button-gap: 6px;
-
-  --input-height: 36px;
-
-  --radius-card: 14px;
-  --radius-control: 10px;
-
-  /* old aliases otomatis ikut
-     karena menunjuk variable di atas */
+  --space-card: 0.75rem;
+  --space-card-sm: 0.625rem;
+  --space-inline: 0.75rem;
+  --space-row-y: 0.5rem;
+  --space-section: 0.75rem;
+  --space-section-small: 0.5rem;
+  --space-header-y: 0.5rem;
+  --space-quick-action-y: 0.375rem;
+  --control-height: 2rem;
+  --control-height-lg: 2.25rem;
 }
 
 
